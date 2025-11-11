@@ -138,13 +138,11 @@
 
                 <div class="invite-generator">
                     <h3>Generate New Invite Code</h3>
-                    <div style="display: flex; gap: 1rem; align-items: end; margin-bottom: 2rem;">
-                        <div class="form-group" style="flex: 1; margin: 0;">
-                            <label>Expires In (days, optional)</label>
-                            <input type="number" id="inviteExpireDays" placeholder="Leave empty for no expiration" min="1" max="365">
-                        </div>
-                        <button onclick="generateInvite()" class="btn btn-primary">Generate Code</button>
+                    <div class="form-group">
+                        <label>Expires In (days, optional)</label>
+                        <input type="number" id="inviteExpireDays" placeholder="Leave empty for no expiration" min="1" max="365">
                     </div>
+                    <button onclick="generateInvite()" class="btn btn-primary" style="width: 100%;">Generate Code</button>
                 </div>
 
                 <div class="email-template-section">
