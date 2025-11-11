@@ -106,6 +106,9 @@ function renderConversations() {
                 <div class="conversation-date">${formatDate(conv.updatedAt)}</div>
             </div>
             <div class="conversation-actions">
+                <button class="rename-conversation-btn"
+                        onclick="event.stopPropagation(); renameConversation('${conv.id}')"
+                        title="Rename conversation">✏️</button>
                 <button class="star-conversation-btn ${conv.starred ? 'starred' : ''}"
                         onclick="event.stopPropagation(); toggleStar('${conv.id}', ${!conv.starred})"
                         title="${conv.starred ? 'Unstar' : 'Star'} conversation">
@@ -139,19 +142,37 @@ async function loadConversation(id) {
     try {
         currentConversationId = id;
         const conversation = await apiCall(`/api/chat/conversations/${id}`);
-        
+
         document.getElementById('chatTitle').textContent = conversation.title;
         document.getElementById('welcomeMessage').style.display = 'none';
         document.getElementById('inputArea').style.display = 'block';
-        
+
         const messagesDiv = document.getElementById('messages');
-        messagesDiv.innerHTML = conversation.messages.map(msg => `
-            <div class="message ${msg.role}">
-                <div class="message-content">${formatMessage(msg.content)}</div>
-                <div class="message-time">${new Date(msg.createdAt).toLocaleTimeString()}</div>
-            </div>
-        `).join('');
-        
+        messagesDiv.innerHTML = '';
+
+        for (const msg of conversation.messages) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${msg.role}`;
+            messageDiv.dataset.messageId = msg.id;
+
+            if (msg.role === 'assistant') {
+                messageDiv.innerHTML = `
+                    <div class="message-content">${formatMessage(msg.content)}</div>
+                    <div class="message-footer">
+                        <div class="message-time">${new Date(msg.createdAt).toLocaleTimeString()}</div>
+                        <button class="star-message-btn" onclick="starMessage('${msg.id}')" title="Save to Knowledge Base">⭐</button>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="message-content">${formatMessage(msg.content)}</div>
+                    <div class="message-time">${new Date(msg.createdAt).toLocaleTimeString()}</div>
+                `;
+            }
+
+            messagesDiv.appendChild(messageDiv);
+        }
+
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         renderConversations();
     } catch (error) {
@@ -279,9 +300,13 @@ document.getElementById('messageForm').addEventListener('submit', async (e) => {
         // Add assistant message
         const assistantMessageDiv = document.createElement('div');
         assistantMessageDiv.className = 'message assistant';
+        assistantMessageDiv.dataset.messageId = response.assistantMessage.id;
         assistantMessageDiv.innerHTML = `
             <div class="message-content">${formatMessage(response.assistantMessage.content)}</div>
-            <div class="message-time">${new Date(response.assistantMessage.createdAt).toLocaleTimeString()}</div>
+            <div class="message-footer">
+                <div class="message-time">${new Date(response.assistantMessage.createdAt).toLocaleTimeString()}</div>
+                <button class="star-message-btn" onclick="starMessage('${response.assistantMessage.id}')" title="Save to Knowledge Base">⭐</button>
+            </div>
         `;
         messagesDiv.appendChild(assistantMessageDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -417,6 +442,56 @@ document.getElementById('imageModal').addEventListener('click', (e) => {
         closeImageModal();
     }
 });
+
+// Star a message
+async function starMessage(messageId) {
+    const title = prompt('Give this a title for your Knowledge Base:');
+    if (!title) return; // User cancelled
+
+    const note = prompt('Add any notes (optional):') || '';
+
+    try {
+        await apiCall('/api/knowledge/notes', {
+            method: 'POST',
+            body: JSON.stringify({
+                messageId,
+                title,
+                note,
+            }),
+        });
+
+        alert('✅ Saved to Knowledge Base!');
+    } catch (error) {
+        console.error('Failed to star message:', error);
+        alert('Failed to save: ' + error.message);
+    }
+}
+
+// Rename conversation
+async function renameConversation(id) {
+    const conv = conversations.find(c => c.id === id);
+    if (!conv) return;
+
+    const newTitle = prompt('Enter new title:', conv.title);
+    if (!newTitle || newTitle === conv.title) return;
+
+    try {
+        await apiCall(`/api/chat/conversations/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ title: newTitle }),
+        });
+
+        // Update local state
+        conv.title = newTitle;
+        if (currentConversationId === id) {
+            document.getElementById('chatTitle').textContent = newTitle;
+        }
+        renderConversations();
+    } catch (error) {
+        console.error('Failed to rename conversation:', error);
+        alert('Failed to rename: ' + error.message);
+    }
+}
 
 // Load conversations on start
 loadConversations();

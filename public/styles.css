@@ -551,6 +551,45 @@ body {
     margin-top: 4px;
 }
 
+.message-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    gap: 10px;
+}
+
+.star-message-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    opacity: 0.5;
+}
+
+.star-message-btn:hover {
+    background: var(--background);
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.rename-conversation-btn {
+    background: none;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.rename-conversation-btn:hover {
+    opacity: 1;
+}
+
 .message.loading .message-content {
     animation: pulse 1.5s infinite;
 }
