@@ -73,6 +73,19 @@ HAL is a multi-agent AI system with web interface, voice capabilities, and team 
 
 ### Recent Work Sessions
 
+#### Session 3 (2025-11-11) - Email Invites & Sidebar Improvements
+- Improved sidebar UI for parent dashboard:
+  - Removed "HAL" text, show only robot emoji in header
+  - Reorganized header layout (collapse button → logo → subtitle)
+  - Better centered icon-only view when collapsed
+- Added email invite functionality:
+  - Email tracking fields (emailedTo, emailedAt) in database
+  - Customizable email template with {CODE} and {URL} placeholders
+  - "Email Code" button opens mailto: link with pre-filled message
+  - Track when codes are emailed and to whom
+  - Template saved to localStorage for persistence
+  - API endpoint: POST /api/parent/invites/:id/email
+
 #### Session 2 (2025-11-11) - Invite-Only Authentication
 - Removed public signup from front page
 - Implemented invite code system for secure user registration
