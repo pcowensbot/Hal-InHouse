@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAL - Home AI Box</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>🤖 HAL</h1>
+                <p>Home AI Box</p>
+            </div>
+
+            <div id="loginForm" class="form-section">
+                <h2>Welcome Back</h2>
+                <form id="login">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <div id="loginError" class="error"></div>
+                </form>
+                <p class="switch-form">
+                    Don't have an account? 
+                    <a href="#" onclick="showSignup(); return false;">Sign up</a>
+                </p>
+            </div>
+
+            <div id="signupForm" class="form-section" style="display: none;">
+                <h2>Create Account</h2>
+                <form id="signup">
+                    <div class="form-group">
+                        <label>First Name</label>
+                        <input type="text" id="signupFirstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="signupEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="signupPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label>I am a...</label>
+                        <select id="signupRole" required>
+                            <option value="CHILD">Child</option>
+                            <option value="PARENT">Parent</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Sign Up</button>
+                    <div id="signupError" class="error"></div>
+                </form>
+                <p class="switch-form">
+                    Already have an account? 
+                    <a href="#" onclick="showLogin(); return false;">Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize theme
+        const savedTheme = localStorage.getItem('hal_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        // Check if already logged in
+        if (localStorage.getItem('hal_token')) {
+            const user = JSON.parse(localStorage.getItem('hal_user'));
+            if (user.role === 'PARENT') {
+                window.location.href = '/parent.html';
+            } else {
+                window.location.href = '/chat.html';
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('signupForm').style.display = 'none';
+        }
+
+        function showSignup() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+        }
+
+        // Login
+        document.getElementById('login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.textContent = '';
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Login failed');
+                }
+
+                localStorage.setItem('hal_token', data.token);
+                localStorage.setItem('hal_user', JSON.stringify(data.user));
+
+                if (data.user.role === 'PARENT') {
+                    window.location.href = '/parent.html';
+                } else {
+                    window.location.href = '/chat.html';
+                }
+            } catch (error) {
+                errorDiv.textContent = error.message;
+            }
+        });
+
+        // Signup
+        document.getElementById('signup').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorDiv = document.getElementById('signupError');
+            errorDiv.textContent = '';
+
+            const firstName = document.getElementById('signupFirstName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const role = document.getElementById('signupRole').value;
+
+            try {
+                const response = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ firstName, email, password, role }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Signup failed');
+                }
+
+                localStorage.setItem('hal_token', data.token);
+                localStorage.setItem('hal_user', JSON.stringify(data.user));
+
+                if (data.user.role === 'PARENT') {
+                    window.location.href = '/parent.html';
+                } else {
+                    window.location.href = '/chat.html';
+                }
+            } catch (error) {
+                errorDiv.textContent = error.message;
+            }
+        });
+    </script>
+</body>
+</html>

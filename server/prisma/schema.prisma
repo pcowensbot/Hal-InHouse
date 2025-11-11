@@ -1,0 +1,71 @@
+// Prisma schema for HAL - Home AI Box
+// Single household, parents + kids, conversation tracking
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  firstName     String
+  role          Role           @default(CHILD)
+  createdAt     DateTime       @default(now())
+  conversations Conversation[]
+  
+  @@map("users")
+}
+
+enum Role {
+  PARENT
+  CHILD
+}
+
+model Conversation {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String    @default("New Chat")
+  starred         Boolean   @default(false) // Star to keep at top
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime? // Soft delete timestamp
+  deletedBy       String?   // User ID who deleted it
+  permanentDelete Boolean   @default(false) // Flag for final deletion
+  messages        Message[]
+
+  @@index([userId])
+  @@index([deletedAt])
+  @@index([starred])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String       // "user" or "assistant"
+  content        String       @db.Text
+  imageUrl       String?      // For generated images
+  modelUsed      String       @default("llama3.1:8b")
+  createdAt      DateTime     @default(now())
+  
+  @@index([conversationId])
+  @@map("messages")
+}
+
+model Settings {
+  id              Int      @id @default(1)
+  householdName   String   @default("HAL")
+  imageGenEnabled Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("settings")
+}

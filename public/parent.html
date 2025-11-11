@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAL - Parent Dashboard</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">☰</button>
+            <div class="sidebar-header">
+                <h2>🤖 HAL</h2>
+                <p class="subtitle">Parent Dashboard</p>
+            </div>
+            <nav class="nav-menu">
+                <a href="#overview" class="nav-item active" onclick="showTab('overview')">📊 Overview</a>
+                <a href="#conversations" class="nav-item" onclick="showTab('conversations')">💬 Conversations</a>
+                <a href="#deletions" class="nav-item" onclick="showTab('deletions')">🗑️ Pending Deletions</a>
+                <a href="#users" class="nav-item" onclick="showTab('users')">👥 Family Members</a>
+                <a href="#search" class="nav-item" onclick="showTab('search')">🔍 Search</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <span id="userName"></span>
+                </div>
+                <div class="footer-buttons">
+                    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
+                    <button id="profileBtn" class="btn btn-secondary btn-sm">⚙️ Profile</button>
+                    <button id="chatBtn" class="btn btn-primary btn-sm">💬 My Chat</button>
+                    <button id="logoutBtn" class="btn btn-secondary btn-sm">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="dashboard-main">
+            <!-- Overview Tab -->
+            <div id="overviewTab" class="tab-content active">
+                <h1>📊 Overview</h1>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statUsers">-</div>
+                        <div class="stat-label">Family Members</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statConversations">-</div>
+                        <div class="stat-label">Total Conversations</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statMessages">-</div>
+                        <div class="stat-label">Total Messages</div>
+                    </div>
+                </div>
+
+                <h2>Activity by User</h2>
+                <div id="userStats" class="user-stats">
+                    <!-- User stats will load here -->
+                </div>
+
+                <h2>Recent Activity</h2>
+                <div id="recentActivity" class="activity-list">
+                    <!-- Recent messages will load here -->
+                </div>
+            </div>
+
+            <!-- Conversations Tab -->
+            <div id="conversationsTab" class="tab-content">
+                <h1>💬 All Conversations</h1>
+
+                <div class="filter-bar">
+                    <select id="userFilter" class="filter-select">
+                        <option value="">All Users</option>
+                    </select>
+                    <button onclick="loadAllConversations()" class="btn btn-sm">Refresh</button>
+                </div>
+
+                <div id="allConversations" class="conversations-grid">
+                    <!-- Conversations will load here -->
+                </div>
+            </div>
+
+            <!-- Pending Deletions Tab -->
+            <div id="deletionsTab" class="tab-content">
+                <h1>🗑️ Pending Deletions</h1>
+                <p class="subtitle">Review conversations marked for deletion</p>
+
+                <div id="pendingDeletions" class="conversations-grid">
+                    <!-- Pending deletions will load here -->
+                </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="usersTab" class="tab-content">
+                <h1>👥 Family Members</h1>
+                <div id="usersList" class="users-list">
+                    <!-- Users will load here -->
+                </div>
+            </div>
+
+            <!-- Search Tab -->
+            <div id="searchTab" class="tab-content">
+                <h1>🔍 Search Messages</h1>
+                
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Search for keywords...">
+                    <select id="searchUserFilter" class="filter-select">
+                        <option value="">All Users</option>
+                    </select>
+                    <button onclick="performSearch()" class="btn btn-primary">Search</button>
+                </div>
+
+                <div id="searchResults" class="search-results">
+                    <p class="placeholder">Enter keywords to search messages</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/parent.js"></script>
+</body>
+</html>

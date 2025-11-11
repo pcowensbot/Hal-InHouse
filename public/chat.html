@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAL Chat</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">☰</button>
+            <div class="sidebar-header">
+                <h2>🤖 HAL</h2>
+                <button id="newChatBtn" class="btn btn-primary btn-sm">💬 New Chat</button>
+                <button id="newImageBtn" class="btn btn-secondary btn-sm" style="margin-top: 8px;">🎨 New Image</button>
+            </div>
+            <div id="conversationList" class="conversation-list">
+                <!-- Conversations will be loaded here -->
+            </div>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <span id="userName"></span>
+                </div>
+                <div class="footer-buttons">
+                    <button id="profileBtn" class="btn btn-secondary btn-sm">⚙️ Profile</button>
+                    <button id="dashboardBtn" class="btn btn-primary btn-sm" style="display: none;">📊 Dashboard</button>
+                    <button id="logoutBtn" class="btn btn-secondary btn-sm">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="chat-main">
+            <div id="chatHeader" class="chat-header">
+                <h3 id="chatTitle">Select a conversation</h3>
+                <div class="header-actions">
+                    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
+                </div>
+            </div>
+            
+            <div id="messagesContainer" class="messages-container">
+                <div id="welcomeMessage" class="welcome-message">
+                    <h1>👋 Hello!</h1>
+                    <p>Start a new conversation or select one from the sidebar.</p>
+                </div>
+                <div id="messages" class="messages">
+                    <!-- Messages will appear here -->
+                </div>
+            </div>
+
+            <div id="inputArea" class="input-area" style="display: none;">
+                <form id="messageForm">
+                    <textarea 
+                        id="messageInput" 
+                        placeholder="Ask me anything..." 
+                        rows="1"
+                        required
+                    ></textarea>
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Generation Modal -->
+    <div id="imageModal" class="modal" style="display: none;">
+        <div class="modal-content image-modal-content">
+            <div class="modal-header">
+                <h2>🎨 Generate Image</h2>
+                <button onclick="closeImageModal()" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="imageForm">
+                    <div class="form-group">
+                        <label for="imagePrompt">What would you like to create?</label>
+                        <textarea
+                            id="imagePrompt"
+                            placeholder="Describe the image you want to generate..."
+                            rows="4"
+                            required
+                        ></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="generateBtn">
+                        Generate Image
+                    </button>
+                </form>
+
+                <div id="imageResult" style="display: none; margin-top: 20px;">
+                    <h3>Generated Image:</h3>
+                    <img id="generatedImage" style="max-width: 100%; border-radius: 12px; margin-top: 10px;" alt="Generated image">
+                    <p id="imagePromptDisplay" style="margin-top: 10px; color: var(--text-light); font-size: 14px;"></p>
+                </div>
+
+                <div id="imageLoading" style="display: none; text-align: center; margin-top: 20px;">
+                    <div class="loading-spinner"></div>
+                    <p>Generating your image... This may take 15-20 seconds.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/chat.js"></script>
+</body>
+</html>

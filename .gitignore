@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pm2.log
+
+# Database
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+prisma/.env
+prisma/migrations/
+
+# Generated images (users generate their own)
+public/generated-images/*.png
+public/generated-images/*.jpg
+public/generated-images/*.jpeg
+
+# Archive folder (old documentation)
+.archive/
