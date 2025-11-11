@@ -73,6 +73,35 @@ HAL is a multi-agent AI system with web interface, voice capabilities, and team 
 
 ### Recent Work Sessions
 
+#### Session 4 (2025-11-11) - Knowledge Base Foundation
+**Backend Complete:**
+- Database schema for Knowledge Base system:
+  - `Book` model - Collections to organize starred notes
+  - `StarredNote` model - Saved AI responses with title/note fields
+  - Full relations between User, Message, Book, and StarredNote
+- API endpoints (`/api/knowledge`):
+  - Book CRUD operations (create, list, update, delete)
+  - Note management (star message, list notes, update, unstar)
+  - Check if message already starred
+
+**Chat Improvements:**
+- ⭐ Star button on every AI response
+- Prompts user for title and optional notes when starring
+- Saves starred items to Knowledge Base via API
+- ✏️ Rename button on conversations in sidebar
+- Message footer layout with time + star button
+- Smooth hover effects and animations
+
+**Files Modified:**
+- `server/prisma/schema.prisma` - Added Book and StarredNote models
+- `server/src/routes/knowledge.js` - New API routes (created)
+- `server/src/index.js` - Registered knowledge routes
+- `public/chat.js` - Added star and rename functions
+- `public/styles.css` - Styling for new buttons
+
+**Next Session TODO:**
+See "Knowledge Base UI Implementation Plan" section below.
+
 #### Session 3 (2025-11-11) - Email Invites & Sidebar Improvements
 - Improved sidebar UI for parent dashboard:
   - Removed "HAL" text, show only robot emoji in header
@@ -106,11 +135,57 @@ HAL is a multi-agent AI system with web interface, voice capabilities, and team 
 - Created PM2 configuration for deployment
 - Added comprehensive README documentation
 
-### Next Steps / TODOs
-- [ ] Add authentication/security layer
+### Knowledge Base UI Implementation Plan
+
+**Goal:** Create a personal library for each user to organize starred AI responses into books.
+
+**Phase 1: Basic Knowledge Base Tab (Priority)**
+1. Create `public/knowledge.html` or add tab to `chat.html` sidebar
+2. Create `public/knowledge.js` with:
+   - Load user's books (with note counts)
+   - Load unorganized notes
+   - Display notes in a clean list/card view
+3. Add "📚 Knowledge Base" nav item to chat sidebar
+4. Basic styling for book cards and note cards
+
+**Phase 2: Book Management**
+1. "Create Book" button with modal
+   - Name and description fields
+2. Display books as cards with:
+   - Book name
+   - Description
+   - Note count (shows as "pages")
+3. Click book to view its notes
+4. Edit/delete book functionality
+
+**Phase 3: Note Organization**
+1. Move notes between books (dropdown or drag?)
+2. Edit note title and custom notes
+3. View full AI response with context
+4. Delete/unstar functionality
+5. Search notes within Knowledge Base
+
+**Phase 4: Parent Dashboard Integration**
+1. "Family Knowledge" tab in parent dashboard
+2. View all users' starred notes
+3. Filter by user
+4. See what topics kids are learning about
+
+**Phase 5: Polish**
+1. Resizable sidebar for chat (draggable divider)
+2. Mobile responsiveness fixes
+3. Export notes/books to markdown or PDF
+4. Tags/categories for notes
+
+**Design Notes:**
+- Use card-based layout for books (like app icons)
+- Notes show: title, snippet of AI response, date, conversation link
+- "Unorganized" section at top for notes not in books
+- Clicking a note shows full context (question + answer)
+
+### General TODOs
 - [ ] Implement agent memory improvements
 - [ ] Add more tool integrations
-- [ ] Create admin dashboard
 - [ ] Add conversation export features
 - [ ] Implement agent learning capabilities
 - [ ] Add metrics and monitoring
