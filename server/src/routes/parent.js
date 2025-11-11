@@ -270,9 +270,6 @@ router.get('/invites', async (req, res) => {
   try {
     const invites = await prisma.inviteCode.findMany({
       orderBy: { createdAt: 'desc' },
-      include: {
-        _count: true,
-      },
     });
 
     // Get user info for usedBy field
