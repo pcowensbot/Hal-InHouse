@@ -79,6 +79,8 @@ model InviteCode {
   usedAt      DateTime? // When it was used
   usedBy      String?   // User ID who used it
   isActive    Boolean   @default(true)
+  emailedTo   String?   // Email address it was sent to
+  emailedAt   DateTime? // When it was emailed
 
   @@index([code])
   @@index([createdBy])

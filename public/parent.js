@@ -394,10 +394,37 @@ document.getElementById('chatBtn').addEventListener('click', () => {
 
 // ===== INVITE CODE MANAGEMENT =====
 
+// Load email template from localStorage
+function loadEmailTemplate() {
+    const savedSubject = localStorage.getItem('hal_email_subject');
+    const savedMessage = localStorage.getItem('hal_email_message');
+
+    if (savedSubject) {
+        document.getElementById('emailSubject').value = savedSubject;
+    }
+    if (savedMessage) {
+        document.getElementById('emailMessage').value = savedMessage;
+    }
+}
+
+// Save email template to localStorage
+function saveEmailTemplate() {
+    const subject = document.getElementById('emailSubject').value;
+    const message = document.getElementById('emailMessage').value;
+
+    localStorage.setItem('hal_email_subject', subject);
+    localStorage.setItem('hal_email_message', message);
+
+    alert('Email template saved!');
+}
+
 // Load all invite codes
 async function loadInvites() {
     try {
         const invites = await apiCall('/api/parent/invites');
+
+        // Load email template if on invites tab
+        loadEmailTemplate();
 
         const invitesDiv = document.getElementById('invitesList');
         if (invites.length === 0) {
@@ -418,12 +445,15 @@ async function loadInvites() {
                         <div class="invite-details">
                             <div><strong>Created:</strong> ${new Date(invite.createdAt).toLocaleString()}</div>
                             ${invite.expiresAt ? `<div><strong>Expires:</strong> ${new Date(invite.expiresAt).toLocaleString()}</div>` : '<div><strong>Expires:</strong> Never</div>'}
+                            ${invite.emailedTo ? `<div><strong>Emailed to:</strong> ${invite.emailedTo}</div>` : ''}
+                            ${invite.emailedAt ? `<div><strong>Emailed on:</strong> ${new Date(invite.emailedAt).toLocaleString()}</div>` : ''}
                             ${isUsed ? `<div><strong>Used by:</strong> ${invite.usedByUser ? invite.usedByUser.firstName + ' (' + invite.usedByUser.email + ')' : 'Unknown'}</div>` : ''}
                             ${isUsed ? `<div><strong>Used on:</strong> ${new Date(invite.usedAt).toLocaleString()}</div>` : ''}
                         </div>
                         ${!isUsed && invite.isActive ? `
                             <div class="invite-actions">
                                 <button onclick="copyInviteCode('${invite.code}')" class="btn btn-sm btn-primary">📋 Copy Code</button>
+                                <button onclick="emailInviteCode('${invite.id}', '${invite.code}')" class="btn btn-sm btn-primary">📧 Email Code</button>
                                 <button onclick="deactivateInvite('${invite.id}')" class="btn btn-sm btn-secondary">❌ Deactivate</button>
                             </div>
                         ` : ''}
@@ -499,6 +529,53 @@ async function deactivateInvite(id) {
     } catch (error) {
         console.error('Failed to deactivate invite:', error);
         alert('Failed to deactivate invite code: ' + error.message);
+    }
+}
+
+// Email an invite code
+async function emailInviteCode(inviteId, code) {
+    const email = prompt('Enter the email address to send this invite code to:');
+
+    if (!email) {
+        return; // User cancelled
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        alert('Please enter a valid email address');
+        return;
+    }
+
+    try {
+        // Get email template
+        const subject = document.getElementById('emailSubject').value;
+        let message = document.getElementById('emailMessage').value;
+
+        // Replace placeholders
+        const currentUrl = window.location.origin;
+        message = message.replace(/{CODE}/g, code);
+        message = message.replace(/{URL}/g, currentUrl);
+
+        // Create mailto link with pre-filled content
+        const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+
+        // Mark invite as emailed in database
+        await apiCall(`/api/parent/invites/${inviteId}/email`, {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        });
+
+        // Open email client
+        window.location.href = mailtoLink;
+
+        // Reload invites to show updated info
+        setTimeout(() => {
+            loadInvites();
+        }, 500);
+    } catch (error) {
+        console.error('Failed to email invite:', error);
+        alert('Failed to record email: ' + error.message);
     }
 }
 

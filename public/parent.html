@@ -10,9 +10,9 @@
     <div class="dashboard-container">
         <!-- Sidebar -->
         <div class="sidebar">
-            <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">☰</button>
             <div class="sidebar-header">
-                <h2>🤖 HAL</h2>
+                <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">☰</button>
+                <div class="sidebar-logo">🤖</div>
                 <p class="subtitle">Parent Dashboard</p>
             </div>
             <nav class="nav-menu">
@@ -147,7 +147,35 @@
                     </div>
                 </div>
 
-                <h3>Active Invite Codes</h3>
+                <div class="email-template-section">
+                    <h3>Email Template</h3>
+                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 1rem;">Customize the email message you'll send with invite codes. Click "Email Code" on any invite to copy this template with the code filled in.</p>
+                    <div class="form-group">
+                        <label>Email Subject</label>
+                        <input type="text" id="emailSubject" value="You're invited to join HAL!" style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <label>Email Message</label>
+                        <textarea id="emailMessage" rows="8" style="width: 100%; resize: vertical;">Hey there! 👋
+
+You've been invited to join our HAL family AI assistant!
+
+Your invite code is: {CODE}
+
+To get started:
+1. Visit: {URL}
+2. Click "Have an invite code? Create account"
+3. Enter your invite code: {CODE}
+4. Fill out your information
+
+Looking forward to having you in the family!
+
+P.S. This code is for one-time use only, so keep it safe! 🔒</textarea>
+                    </div>
+                    <button onclick="saveEmailTemplate()" class="btn btn-secondary btn-sm">💾 Save Template</button>
+                </div>
+
+                <h3>Invite Codes</h3>
                 <div id="invitesList" class="invites-list">
                     <!-- Invites will load here -->
                 </div>
@@ -172,6 +200,6 @@
         </div>
     </div>
 
-    <script src="/parent.js?v=3"></script>
+    <script src="/parent.js?v=4"></script>
 </body>
 </html>

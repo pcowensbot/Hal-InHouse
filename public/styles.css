@@ -232,9 +232,8 @@ body {
     text-align: center;
 }
 
-.sidebar.collapsed .sidebar-header h2 {
-    font-size: 28px;
-    margin-bottom: 0;
+.sidebar.collapsed .sidebar-logo {
+    font-size: 32px;
 }
 
 /* Center footer buttons when collapsed */
@@ -254,14 +253,10 @@ body {
 }
 
 .sidebar.collapsed .collapse-btn {
-    right: 50%;
-    transform: translateX(50%);
+    margin-bottom: 15px;
 }
 
 .collapse-btn {
-    position: absolute;
-    top: 20px;
-    right: 10px;
     background: none;
     border: none;
     font-size: 20px;
@@ -269,7 +264,7 @@ body {
     padding: 5px;
     color: var(--text-light);
     transition: color 0.2s;
-    z-index: 10;
+    margin-bottom: 10px;
 }
 
 .collapse-btn:hover {
@@ -279,10 +274,13 @@ body {
 .sidebar-header {
     padding: 20px;
     border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.sidebar-header h2 {
-    font-size: 24px;
+.sidebar-logo {
+    font-size: 48px;
     margin-bottom: 10px;
 }
 
@@ -1163,11 +1161,23 @@ body {
     padding: 20px;
     border-radius: 12px;
     box-shadow: var(--shadow);
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .invite-generator h3 {
     margin-bottom: 15px;
+}
+
+.email-template-section {
+    background: var(--surface);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    margin-bottom: 30px;
+}
+
+.email-template-section h3 {
+    margin-bottom: 10px;
 }
 
 .invites-list {

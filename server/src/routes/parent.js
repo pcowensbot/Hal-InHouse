@@ -344,4 +344,29 @@ router.delete('/invites/:id', async (req, res) => {
   }
 });
 
+// Mark invite code as emailed
+router.post('/invites/:id/email', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email address required' });
+    }
+
+    const invite = await prisma.inviteCode.update({
+      where: { id },
+      data: {
+        emailedTo: email,
+        emailedAt: new Date(),
+      },
+    });
+
+    res.json({ success: true, invite });
+  } catch (error) {
+    console.error('Mark as emailed error:', error);
+    res.status(500).json({ error: 'Failed to mark invite as emailed' });
+  }
+});
+
 export default router;
