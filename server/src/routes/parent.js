@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import prisma from '../config/database.js';
 import { authenticateToken, requireParent } from '../middleware/auth.js';
 
@@ -261,6 +262,88 @@ router.delete('/conversations/:id/permanent', async (req, res) => {
   } catch (error) {
     console.error('Permanent delete error:', error);
     res.status(500).json({ error: 'Failed to permanently delete conversation' });
+  }
+});
+
+// Get all invite codes
+router.get('/invites', async (req, res) => {
+  try {
+    const invites = await prisma.inviteCode.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: true,
+      },
+    });
+
+    // Get user info for usedBy field
+    const invitesWithUsers = await Promise.all(
+      invites.map(async (invite) => {
+        let usedByUser = null;
+        if (invite.usedBy) {
+          usedByUser = await prisma.user.findUnique({
+            where: { id: invite.usedBy },
+            select: { firstName: true, email: true },
+          });
+        }
+        return {
+          ...invite,
+          usedByUser,
+        };
+      })
+    );
+
+    res.json(invitesWithUsers);
+  } catch (error) {
+    console.error('Get invites error:', error);
+    res.status(500).json({ error: 'Failed to fetch invite codes' });
+  }
+});
+
+// Generate new invite code
+router.post('/invites', async (req, res) => {
+  try {
+    const { expiresInDays } = req.body;
+    const userId = req.user.userId;
+
+    // Generate random 8-character code
+    const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+
+    // Calculate expiration if specified
+    let expiresAt = null;
+    if (expiresInDays) {
+      expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + parseInt(expiresInDays));
+    }
+
+    const invite = await prisma.inviteCode.create({
+      data: {
+        code,
+        createdBy: userId,
+        expiresAt,
+      },
+    });
+
+    res.status(201).json(invite);
+  } catch (error) {
+    console.error('Create invite error:', error);
+    res.status(500).json({ error: 'Failed to create invite code' });
+  }
+});
+
+// Deactivate an invite code
+router.delete('/invites/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.inviteCode.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    res.json({ success: true, message: 'Invite code deactivated' });
+  } catch (error) {
+    console.error('Deactivate invite error:', error);
+    res.status(500).json({ error: 'Failed to deactivate invite code' });
   }
 });
 

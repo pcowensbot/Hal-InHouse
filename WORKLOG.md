@@ -71,7 +71,22 @@ HAL is a multi-agent AI system with web interface, voice capabilities, and team 
 └── setup.sh         # Setup script
 ```
 
-### Recent Work Session
+### Recent Work Sessions
+
+#### Session 2 (2025-11-11) - Invite-Only Authentication
+- Removed public signup from front page
+- Implemented invite code system for secure user registration
+- Added InviteCode model to database schema
+- Created invite management API endpoints (generate, list, deactivate)
+- Added invite management UI to parent dashboard
+- Features:
+  - Parents can generate invite codes with optional expiration
+  - One-time use codes for new family members
+  - Track code usage and deactivation
+  - Copy codes to clipboard functionality
+  - Visual status indicators (active/used/expired/inactive)
+
+#### Session 1 (Initial Setup)
 - Set up complete HAL multi-agent system
 - Implemented web interface with voice support
 - Configured database and persistence

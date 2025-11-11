@@ -1110,6 +1110,137 @@ body {
     background: #1e3a8a;
 }
 
+/* Invite Codes */
+.invite-generator {
+    background: var(--surface);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    margin-bottom: 30px;
+}
+
+.invite-generator h3 {
+    margin-bottom: 15px;
+}
+
+.invites-list {
+    display: grid;
+    gap: 15px;
+}
+
+.invite-card {
+    background: var(--surface);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--border);
+}
+
+.invite-card.active {
+    border-left-color: var(--success);
+}
+
+.invite-card.used {
+    border-left-color: var(--secondary);
+    opacity: 0.7;
+}
+
+.invite-card.expired {
+    border-left-color: var(--danger);
+    opacity: 0.7;
+}
+
+.invite-card.inactive {
+    border-left-color: var(--text-light);
+    opacity: 0.7;
+}
+
+.invite-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.invite-code-display {
+    font-family: 'Courier New', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 2px;
+}
+
+.badge-active {
+    background: #d1fae5;
+    color: var(--success);
+}
+
+.badge-used {
+    background: #f1f5f9;
+    color: var(--secondary);
+}
+
+.badge-expired {
+    background: #fee2e2;
+    color: var(--danger);
+}
+
+.badge-inactive {
+    background: #f1f5f9;
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .badge-active {
+    background: #064e3b;
+    color: #6ee7b7;
+}
+
+[data-theme="dark"] .badge-used {
+    background: #334155;
+}
+
+[data-theme="dark"] .badge-expired {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .badge-inactive {
+    background: #334155;
+}
+
+.invite-details {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 15px;
+}
+
+.invite-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.invite-actions button {
+    flex: 1;
+}
+
+.deletion-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.deletion-card {
+    border-left: 4px solid var(--danger);
+    cursor: default;
+}
+
+.deletion-card:hover {
+    transform: none;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .sidebar {

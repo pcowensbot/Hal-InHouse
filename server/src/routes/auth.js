@@ -54,13 +54,34 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Signup
+// Signup (requires invite code)
 router.post('/signup', async (req, res) => {
   try {
-    const { email, password, firstName, role } = req.body;
+    const { inviteCode, email, password, firstName, role } = req.body;
 
-    if (!email || !password || !firstName) {
-      return res.status(400).json({ error: 'All fields required' });
+    if (!inviteCode || !email || !password || !firstName) {
+      return res.status(400).json({ error: 'All fields including invite code are required' });
+    }
+
+    // Verify invite code
+    const invite = await prisma.inviteCode.findUnique({
+      where: { code: inviteCode },
+    });
+
+    if (!invite) {
+      return res.status(401).json({ error: 'Invalid invite code' });
+    }
+
+    if (!invite.isActive) {
+      return res.status(401).json({ error: 'This invite code has been deactivated' });
+    }
+
+    if (invite.usedAt) {
+      return res.status(401).json({ error: 'This invite code has already been used' });
+    }
+
+    if (invite.expiresAt && new Date() > invite.expiresAt) {
+      return res.status(401).json({ error: 'This invite code has expired' });
     }
 
     // Check if user exists
@@ -75,13 +96,22 @@ router.post('/signup', async (req, res) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user
+    // Create user and mark invite as used
     const user = await prisma.user.create({
       data: {
         email: email.toLowerCase(),
         passwordHash,
         firstName,
         role: role || 'CHILD',
+      },
+    });
+
+    // Mark invite code as used
+    await prisma.inviteCode.update({
+      where: { id: invite.id },
+      data: {
+        usedAt: new Date(),
+        usedBy: user.id,
       },
     });
 

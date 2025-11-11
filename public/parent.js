@@ -92,6 +92,8 @@ function showTab(tabName) {
         loadPendingDeletions();
     } else if (tabName === 'users') {
         loadUsers();
+    } else if (tabName === 'invites') {
+        loadInvites();
     }
 }
 
@@ -389,6 +391,116 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 document.getElementById('chatBtn').addEventListener('click', () => {
     window.location.href = '/chat.html';
 });
+
+// ===== INVITE CODE MANAGEMENT =====
+
+// Load all invite codes
+async function loadInvites() {
+    try {
+        const invites = await apiCall('/api/parent/invites');
+
+        const invitesDiv = document.getElementById('invitesList');
+        if (invites.length === 0) {
+            invitesDiv.innerHTML = '<p class="placeholder">No invite codes generated yet</p>';
+        } else {
+            invitesDiv.innerHTML = invites.map(invite => {
+                const isExpired = invite.expiresAt && new Date(invite.expiresAt) < new Date();
+                const isUsed = invite.usedAt !== null;
+                const status = isUsed ? 'Used' : isExpired ? 'Expired' : invite.isActive ? 'Active' : 'Inactive';
+                const statusClass = isUsed ? 'used' : isExpired ? 'expired' : invite.isActive ? 'active' : 'inactive';
+
+                return `
+                    <div class="invite-card ${statusClass}">
+                        <div class="invite-header">
+                            <div class="invite-code-display">${invite.code}</div>
+                            <span class="badge badge-${statusClass}">${status}</span>
+                        </div>
+                        <div class="invite-details">
+                            <div><strong>Created:</strong> ${new Date(invite.createdAt).toLocaleString()}</div>
+                            ${invite.expiresAt ? `<div><strong>Expires:</strong> ${new Date(invite.expiresAt).toLocaleString()}</div>` : '<div><strong>Expires:</strong> Never</div>'}
+                            ${isUsed ? `<div><strong>Used by:</strong> ${invite.usedByUser ? invite.usedByUser.firstName + ' (' + invite.usedByUser.email + ')' : 'Unknown'}</div>` : ''}
+                            ${isUsed ? `<div><strong>Used on:</strong> ${new Date(invite.usedAt).toLocaleString()}</div>` : ''}
+                        </div>
+                        ${!isUsed && invite.isActive ? `
+                            <div class="invite-actions">
+                                <button onclick="copyInviteCode('${invite.code}')" class="btn btn-sm btn-primary">📋 Copy Code</button>
+                                <button onclick="deactivateInvite('${invite.id}')" class="btn btn-sm btn-secondary">❌ Deactivate</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+    } catch (error) {
+        console.error('Failed to load invites:', error);
+        alert('Failed to load invite codes: ' + error.message);
+    }
+}
+
+// Generate new invite code
+async function generateInvite() {
+    try {
+        const expireDays = document.getElementById('inviteExpireDays').value;
+
+        const body = {};
+        if (expireDays) {
+            body.expiresInDays = parseInt(expireDays);
+        }
+
+        const invite = await apiCall('/api/parent/invites', {
+            method: 'POST',
+            body: JSON.stringify(body),
+        });
+
+        // Clear input
+        document.getElementById('inviteExpireDays').value = '';
+
+        // Show success message with code
+        alert(`Invite code generated successfully!\n\nCode: ${invite.code}\n\nShare this code with the new family member.`);
+
+        // Reload invites
+        loadInvites();
+    } catch (error) {
+        console.error('Failed to generate invite:', error);
+        alert('Failed to generate invite code: ' + error.message);
+    }
+}
+
+// Copy invite code to clipboard
+async function copyInviteCode(code) {
+    try {
+        await navigator.clipboard.writeText(code);
+        alert(`Invite code "${code}" copied to clipboard!`);
+    } catch (error) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = code;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert(`Invite code "${code}" copied to clipboard!`);
+    }
+}
+
+// Deactivate an invite code
+async function deactivateInvite(id) {
+    if (!confirm('Deactivate this invite code? It will no longer be usable.')) {
+        return;
+    }
+
+    try {
+        await apiCall(`/api/parent/invites/${id}`, {
+            method: 'DELETE',
+        });
+
+        alert('Invite code deactivated successfully');
+        loadInvites();
+    } catch (error) {
+        console.error('Failed to deactivate invite:', error);
+        alert('Failed to deactivate invite code: ' + error.message);
+    }
+}
 
 // Load overview on start
 loadOverview();

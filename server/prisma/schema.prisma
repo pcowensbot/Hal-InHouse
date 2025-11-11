@@ -66,6 +66,21 @@ model Settings {
   imageGenEnabled Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  
+
   @@map("settings")
+}
+
+model InviteCode {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  createdBy   String    // Parent user ID who created it
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime? // Optional expiration
+  usedAt      DateTime? // When it was used
+  usedBy      String?   // User ID who used it
+  isActive    Boolean   @default(true)
+
+  @@index([code])
+  @@index([createdBy])
+  @@map("invite_codes")
 }

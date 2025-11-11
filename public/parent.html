@@ -20,6 +20,7 @@
                 <a href="#conversations" class="nav-item" onclick="showTab('conversations')">💬 Conversations</a>
                 <a href="#deletions" class="nav-item" onclick="showTab('deletions')">🗑️ Pending Deletions</a>
                 <a href="#users" class="nav-item" onclick="showTab('users')">👥 Family Members</a>
+                <a href="#invites" class="nav-item" onclick="showTab('invites')">✉️ Invite Codes</a>
                 <a href="#search" class="nav-item" onclick="showTab('search')">🔍 Search</a>
             </nav>
             <div class="sidebar-footer">
@@ -98,6 +99,28 @@
                 <h1>👥 Family Members</h1>
                 <div id="usersList" class="users-list">
                     <!-- Users will load here -->
+                </div>
+            </div>
+
+            <!-- Invites Tab -->
+            <div id="invitesTab" class="tab-content">
+                <h1>✉️ Invite Codes</h1>
+                <p class="subtitle">Generate invite codes for new family members</p>
+
+                <div class="invite-generator">
+                    <h3>Generate New Invite Code</h3>
+                    <div style="display: flex; gap: 1rem; align-items: end; margin-bottom: 2rem;">
+                        <div class="form-group" style="flex: 1; margin: 0;">
+                            <label>Expires In (days, optional)</label>
+                            <input type="number" id="inviteExpireDays" placeholder="Leave empty for no expiration" min="1" max="365">
+                        </div>
+                        <button onclick="generateInvite()" class="btn btn-primary">Generate Code</button>
+                    </div>
+                </div>
+
+                <h3>Active Invite Codes</h3>
+                <div id="invitesList" class="invites-list">
+                    <!-- Invites will load here -->
                 </div>
             </div>
 
