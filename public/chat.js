@@ -279,14 +279,47 @@ document.getElementById('messageForm').addEventListener('submit', async (e) => {
     messagesDiv.appendChild(userMessageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    // Show loading indicator
+    // Show loading indicator with rotating messages
+    const loadingMessages = [
+        'Thinking...',
+        'Pondering...',
+        'Computing...',
+        'Squaring the root...',
+        'Carrying the 4...',
+        'Consulting the quantum realm...',
+        'Waking up the neurons...',
+        'Reading between the lines...',
+        'Connecting the dots...',
+        'Brewing some wisdom...',
+        'Crunching the numbers...',
+        'Parsing your inquiry...',
+        'That\'s an interesting question...',
+        'Hmm, let me think about that...',
+        'Processing at the speed of light...',
+        'Dusting off the knowledge banks...',
+        'Summoning the answer...',
+        'Calculating probabilities...',
+        'Diving into the data...',
+        'Searching my circuits...',
+    ];
+
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'message assistant loading';
     loadingDiv.innerHTML = `
-        <div class="message-content">Thinking...</div>
+        <div class="message-content">${loadingMessages[0]}</div>
     `;
     messagesDiv.appendChild(loadingDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    // Rotate through loading messages
+    let messageIndex = 0;
+    const loadingInterval = setInterval(() => {
+        messageIndex = (messageIndex + 1) % loadingMessages.length;
+        const contentDiv = loadingDiv.querySelector('.message-content');
+        if (contentDiv) {
+            contentDiv.textContent = loadingMessages[messageIndex];
+        }
+    }, 1500); // Change message every 1.5 seconds
 
     try {
         const response = await apiCall(`/api/chat/conversations/${currentConversationId}/messages`, {
@@ -294,7 +327,8 @@ document.getElementById('messageForm').addEventListener('submit', async (e) => {
             body: JSON.stringify({ content }),
         });
 
-        // Remove loading indicator
+        // Remove loading indicator and stop rotation
+        clearInterval(loadingInterval);
         loadingDiv.remove();
 
         // Add assistant message
@@ -314,6 +348,7 @@ document.getElementById('messageForm').addEventListener('submit', async (e) => {
         // Reload conversations to update sidebar
         await loadConversations();
     } catch (error) {
+        clearInterval(loadingInterval);
         loadingDiv.remove();
         console.error('Failed to send message:', error);
         alert('Failed to send message: ' + error.message);
