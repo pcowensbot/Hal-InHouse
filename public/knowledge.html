@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAL - Knowledge Base</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">☰</button>
+            <div class="sidebar-header">
+                <h2>📚 Knowledge Base</h2>
+                <button id="newBookBtn" class="btn btn-primary btn-sm">➕ New Book</button>
+            </div>
+
+            <!-- Quick Nav -->
+            <div class="knowledge-nav">
+                <button class="nav-btn active" data-view="inbox" onclick="showView('inbox')">
+                    📥 Inbox <span id="inboxCount" class="count-badge">0</span>
+                </button>
+                <button class="nav-btn" data-view="books" onclick="showView('books')">
+                    📚 All Books
+                </button>
+            </div>
+
+            <!-- Books List -->
+            <div id="booksList" class="conversation-list" style="display: none;">
+                <!-- Books will be loaded here -->
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <span id="userName"></span>
+                </div>
+                <div class="footer-buttons">
+                    <button id="chatBtn" class="btn btn-secondary btn-sm">💬 Chat</button>
+                    <button id="dashboardBtn" class="btn btn-primary btn-sm" style="display: none;">📊 Dashboard</button>
+                    <button id="logoutBtn" class="btn btn-secondary btn-sm">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="chat-main">
+            <div class="chat-header">
+                <h3 id="viewTitle">📥 Inbox</h3>
+                <div class="header-actions">
+                    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
+                </div>
+            </div>
+
+            <!-- Inbox View -->
+            <div id="inboxView" class="knowledge-view">
+                <div class="view-description">
+                    <p>Starred messages that haven't been organized yet. Drag them into books or click to assign.</p>
+                </div>
+                <div id="inboxNotes" class="notes-grid">
+                    <!-- Inbox notes will load here -->
+                </div>
+            </div>
+
+            <!-- All Books View -->
+            <div id="booksView" class="knowledge-view" style="display: none;">
+                <div class="view-description">
+                    <p>Your knowledge organized into books. Click a book to view its contents.</p>
+                </div>
+                <div id="booksGrid" class="books-grid">
+                    <!-- Books grid will load here -->
+                </div>
+            </div>
+
+            <!-- Single Book View -->
+            <div id="bookDetailView" class="knowledge-view" style="display: none;">
+                <div class="book-detail-header">
+                    <div>
+                        <h2 id="bookDetailTitle"></h2>
+                        <p id="bookDetailDescription"></p>
+                    </div>
+                    <div class="book-actions">
+                        <button id="editBookBtn" class="btn btn-secondary btn-sm">✏️ Edit</button>
+                        <button id="deleteBookBtn" class="btn btn-danger btn-sm">🗑️ Delete</button>
+                        <button id="backToBooksBtn" class="btn btn-secondary btn-sm">← Back</button>
+                    </div>
+                </div>
+                <div id="bookNotes" class="notes-grid">
+                    <!-- Book notes will load here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Book Modal -->
+    <div id="newBookModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📚 Create New Book</h2>
+                <button onclick="closeNewBookModal()" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="newBookForm">
+                    <div class="form-group">
+                        <label for="bookName">Book Name *</label>
+                        <input type="text" id="bookName" placeholder="e.g., Programming Tips" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bookDescription">Description (optional)</label>
+                        <textarea id="bookDescription" placeholder="What will you store in this book?" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Book</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Book Modal -->
+    <div id="editBookModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ Edit Book</h2>
+                <button onclick="closeEditBookModal()" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="editBookForm">
+                    <input type="hidden" id="editBookId">
+                    <div class="form-group">
+                        <label for="editBookName">Book Name *</label>
+                        <input type="text" id="editBookName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editBookDescription">Description (optional)</label>
+                        <textarea id="editBookDescription" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note Detail Modal -->
+    <div id="noteModal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📝 Note Details</h2>
+                <button onclick="closeNoteModal()" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="noteDetail">
+                    <!-- Note details will load here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/knowledge.js"></script>
+</body>
+</html>

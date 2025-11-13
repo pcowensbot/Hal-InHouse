@@ -369,4 +369,109 @@ router.post('/invites/:id/email', async (req, res) => {
   }
 });
 
+// Get knowledge base stats
+router.get('/knowledge/stats', async (req, res) => {
+  try {
+    const [bookCount, noteCount, users] = await Promise.all([
+      prisma.book.count(),
+      prisma.starredNote.count(),
+      prisma.user.findMany({
+        select: {
+          id: true,
+          firstName: true,
+          _count: {
+            select: {
+              books: true,
+              starredNotes: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    res.json({
+      totalBooks: bookCount,
+      totalNotes: noteCount,
+      userStats: users,
+    });
+  } catch (error) {
+    console.error('Get knowledge stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch knowledge stats' });
+  }
+});
+
+// Get all books from all users
+router.get('/knowledge/books', async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    const where = userId ? { userId } : {};
+
+    const books = await prisma.book.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+          },
+        },
+        _count: {
+          select: { notes: true },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    res.json(books);
+  } catch (error) {
+    console.error('Get all books error:', error);
+    res.status(500).json({ error: 'Failed to fetch books' });
+  }
+});
+
+// Get all notes from all users
+router.get('/knowledge/notes', async (req, res) => {
+  try {
+    const { userId, bookId } = req.query;
+
+    const where = {};
+    if (userId) where.userId = userId;
+    if (bookId) where.bookId = bookId;
+
+    const notes = await prisma.starredNote.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+          },
+        },
+        message: {
+          include: {
+            conversation: {
+              select: {
+                title: true,
+              },
+            },
+          },
+        },
+        book: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(notes);
+  } catch (error) {
+    console.error('Get all notes error:', error);
+    res.status(500).json({ error: 'Failed to fetch notes' });
+  }
+});
+
 export default router;

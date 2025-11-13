@@ -338,6 +338,11 @@ document.getElementById('profileBtn').addEventListener('click', () => {
     window.location.href = '/profile.html';
 });
 
+// Knowledge Base button
+document.getElementById('knowledgeBtn').addEventListener('click', () => {
+    window.location.href = '/knowledge.html';
+});
+
 // Dashboard button (for parents)
 document.getElementById('dashboardBtn')?.addEventListener('click', () => {
     window.location.href = '/parent.html';

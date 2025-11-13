@@ -40,6 +40,10 @@
                     <span class="nav-icon">🔍</span>
                     <span class="nav-text">Search</span>
                 </a>
+                <a href="#knowledge" class="nav-item" onclick="showTab('knowledge')">
+                    <span class="nav-icon">📚</span>
+                    <span class="nav-text">Knowledge Base</span>
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <div class="user-info">
@@ -182,7 +186,7 @@ P.S. This code is for one-time use only, so keep it safe! 🔒</textarea>
             <!-- Search Tab -->
             <div id="searchTab" class="tab-content">
                 <h1>🔍 Search Messages</h1>
-                
+
                 <div class="search-bar">
                     <input type="text" id="searchInput" placeholder="Search for keywords...">
                     <select id="searchUserFilter" class="filter-select">
@@ -193,6 +197,30 @@ P.S. This code is for one-time use only, so keep it safe! 🔒</textarea>
 
                 <div id="searchResults" class="search-results">
                     <p class="placeholder">Enter keywords to search messages</p>
+                </div>
+            </div>
+
+            <!-- Knowledge Base Tab -->
+            <div id="knowledgeTab" class="tab-content">
+                <h1>📚 Family Knowledge Base</h1>
+
+                <div class="knowledge-filters">
+                    <select id="knowledgeUserFilter" class="filter-select" onchange="loadFamilyKnowledge()">
+                        <option value="">All Family Members</option>
+                    </select>
+                    <select id="knowledgeTypeFilter" class="filter-select" onchange="filterKnowledgeView()">
+                        <option value="all">Books & Notes</option>
+                        <option value="books">Books Only</option>
+                        <option value="notes">Notes Only</option>
+                    </select>
+                </div>
+
+                <div id="knowledgeStats" class="stats-grid" style="margin-top: 20px;">
+                    <!-- Stats will load here -->
+                </div>
+
+                <div id="knowledgeContent" class="knowledge-content" style="margin-top: 30px;">
+                    <p class="placeholder">Loading knowledge base...</p>
                 </div>
             </div>
         </div>

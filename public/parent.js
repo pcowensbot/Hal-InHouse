@@ -94,6 +94,8 @@ function showTab(tabName) {
         loadUsers();
     } else if (tabName === 'invites') {
         loadInvites();
+    } else if (tabName === 'knowledge') {
+        loadKnowledgeTab();
     }
 }
 
@@ -577,6 +579,166 @@ async function emailInviteCode(inviteId, code) {
         console.error('Failed to email invite:', error);
         alert('Failed to record email: ' + error.message);
     }
+}
+
+// ============================================
+// Knowledge Base Tab
+// ============================================
+
+let knowledgeData = { books: [], notes: [], stats: null };
+
+async function loadKnowledgeTab() {
+    await loadFamilyKnowledge();
+}
+
+async function loadFamilyKnowledge() {
+    try {
+        const userId = document.getElementById('knowledgeUserFilter').value;
+        const endpoint = userId ? `?userId=${userId}` : '';
+
+        const [stats, books, notes] = await Promise.all([
+            apiCall('/api/parent/knowledge/stats'),
+            apiCall(`/api/parent/knowledge/books${endpoint}`),
+            apiCall(`/api/parent/knowledge/notes${endpoint}`),
+        ]);
+
+        knowledgeData = { stats, books, notes };
+
+        // Populate user filter if not already done
+        const userFilter = document.getElementById('knowledgeUserFilter');
+        if (userFilter.options.length === 1) {
+            stats.userStats.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.firstName;
+                userFilter.appendChild(option);
+            });
+        }
+
+        renderKnowledgeStats();
+        filterKnowledgeView();
+    } catch (error) {
+        console.error('Failed to load knowledge:', error);
+        document.getElementById('knowledgeContent').innerHTML =
+            '<p class="placeholder">Failed to load knowledge base</p>';
+    }
+}
+
+function renderKnowledgeStats() {
+    const { stats } = knowledgeData;
+    const container = document.getElementById('knowledgeStats');
+
+    container.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-value">${stats.totalBooks}</div>
+            <div class="stat-label">Total Books</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${stats.totalNotes}</div>
+            <div class="stat-label">Total Notes</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${stats.userStats.filter(u => u._count.starredNotes > 0).length}</div>
+            <div class="stat-label">Active Users</div>
+        </div>
+    `;
+}
+
+function filterKnowledgeView() {
+    const typeFilter = document.getElementById('knowledgeTypeFilter').value;
+    const { books, notes } = knowledgeData;
+
+    let html = '';
+
+    if (typeFilter === 'all' || typeFilter === 'books') {
+        html += renderBooksSection(books);
+    }
+
+    if (typeFilter === 'all' || typeFilter === 'notes') {
+        html += renderNotesSection(notes);
+    }
+
+    document.getElementById('knowledgeContent').innerHTML = html || '<p class="placeholder">No data to display</p>';
+}
+
+function renderBooksSection(books) {
+    if (books.length === 0) {
+        return '<h2>📚 Books</h2><p class="placeholder">No books found</p>';
+    }
+
+    return `
+        <h2>📚 Books (${books.length})</h2>
+        <div class="books-grid" style="margin-bottom: 40px;">
+            ${books.map(book => `
+                <div class="book-card">
+                    <div class="book-card-icon">📚</div>
+                    <div class="book-card-title">${escapeHtml(book.name)}</div>
+                    <div class="book-card-description">
+                        ${book.description ? escapeHtml(book.description) : 'No description'}
+                    </div>
+                    <div class="book-card-footer">
+                        <span class="book-card-notes-count">${book._count.notes} notes</span>
+                        <span>${escapeHtml(book.user.firstName)}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderNotesSection(notes) {
+    // Group notes by user
+    const notesByUser = {};
+    notes.forEach(note => {
+        const userName = note.user.firstName;
+        if (!notesByUser[userName]) {
+            notesByUser[userName] = [];
+        }
+        notesByUser[userName].push(note);
+    });
+
+    if (notes.length === 0) {
+        return '<h2>📝 Notes</h2><p class="placeholder">No notes found</p>';
+    }
+
+    return `
+        <h2>📝 Notes (${notes.length})</h2>
+        ${Object.entries(notesByUser).map(([userName, userNotes]) => `
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: var(--text); margin-bottom: 16px;">${userName}'s Notes (${userNotes.length})</h3>
+                <div class="notes-grid">
+                    ${userNotes.map(note => createKnowledgeNoteCard(note)).join('')}
+                </div>
+            </div>
+        `).join('')}
+    `;
+}
+
+function createKnowledgeNoteCard(note) {
+    const hasCustomNote = note.note && note.note.trim();
+    const displayContent = hasCustomNote ? note.note : note.message.content;
+    const truncatedContent = displayContent.length > 200
+        ? displayContent.substring(0, 200) + '...'
+        : displayContent;
+
+    return `
+        <div class="note-card">
+            <div class="note-card-header">
+                <div class="note-card-title">
+                    ${note.title ? escapeHtml(note.title) : 'Untitled Note'}
+                </div>
+            </div>
+            <div class="note-card-content">
+                ${escapeHtml(truncatedContent)}
+            </div>
+            <div class="note-card-meta">
+                <span class="note-card-source">
+                    ${note.book ? '📚 ' + escapeHtml(note.book.name) : '📥 Inbox'}
+                </span>
+                <span class="note-card-date">${formatDate(note.createdAt)}</span>
+            </div>
+        </div>
+    `;
 }
 
 // Load overview on start
