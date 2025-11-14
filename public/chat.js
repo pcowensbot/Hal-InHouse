@@ -31,7 +31,21 @@ function toggleTheme() {
 // Sidebar toggle
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
     sidebar.classList.toggle('collapsed');
+    overlay.classList.toggle('collapsed');
+}
+
+// Close sidebar on mobile when clicking overlay
+function closeSidebarOnMobile() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    if (window.innerWidth <= 768) {
+        sidebar.classList.add('collapsed');
+        overlay.classList.add('collapsed');
+    }
 }
 
 // Auto-resize textarea
@@ -87,6 +101,40 @@ async function loadConversations() {
         renderConversations();
     } catch (error) {
         console.error('Failed to load conversations:', error);
+    }
+}
+
+// Load knowledge base stats for sidebar
+async function loadKnowledgeStats() {
+    try {
+        const [notes, books] = await Promise.all([
+            apiCall('/api/knowledge/notes'),
+            apiCall('/api/knowledge/books'),
+        ]);
+
+        const inboxCount = notes.filter(note => !note.bookId).length;
+
+        document.getElementById('inboxNotesCount').textContent = inboxCount;
+        document.getElementById('userBooksCount').textContent = books.length;
+    } catch (error) {
+        console.error('Failed to load knowledge stats:', error);
+    }
+}
+
+// Toggle knowledge base section
+function toggleKnowledgeSection() {
+    const section = document.getElementById('knowledgeSection');
+    const header = document.querySelector('.section-header');
+    const toggle = document.getElementById('knowledgeToggle');
+
+    if (section.classList.contains('collapsed')) {
+        section.classList.remove('collapsed');
+        header.classList.remove('collapsed');
+        toggle.textContent = '▼';
+    } else {
+        section.classList.add('collapsed');
+        header.classList.add('collapsed');
+        toggle.textContent = '▶';
     }
 }
 
@@ -378,6 +426,11 @@ document.getElementById('knowledgeBtn').addEventListener('click', () => {
     window.location.href = '/knowledge.html';
 });
 
+// Organize Notes button (in sidebar)
+document.getElementById('openKnowledgeBtn').addEventListener('click', () => {
+    window.location.href = '/knowledge.html';
+});
+
 // Dashboard button (for parents)
 document.getElementById('dashboardBtn')?.addEventListener('click', () => {
     window.location.href = '/parent.html';
@@ -501,6 +554,9 @@ async function starMessage(messageId) {
         });
 
         alert('✅ Saved to Knowledge Base!');
+
+        // Refresh knowledge stats in sidebar
+        loadKnowledgeStats();
     } catch (error) {
         console.error('Failed to star message:', error);
         alert('Failed to save: ' + error.message);
@@ -533,5 +589,6 @@ async function renameConversation(id) {
     }
 }
 
-// Load conversations on start
+// Load conversations and knowledge stats on start
 loadConversations();
+loadKnowledgeStats();

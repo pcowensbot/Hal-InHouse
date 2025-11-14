@@ -8,14 +8,41 @@
 </head>
 <body>
     <div class="chat-container">
+        <!-- Mobile Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebarOnMobile()"></div>
+
         <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
+        <div class="sidebar collapsed" id="sidebar">
             <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">☰</button>
             <div class="sidebar-header">
                 <h2>🤖 HAL</h2>
                 <button id="newChatBtn" class="btn btn-primary btn-sm">💬 New Chat</button>
                 <button id="newImageBtn" class="btn btn-secondary btn-sm" style="margin-top: 8px;">🎨 New Image</button>
             </div>
+
+            <!-- Knowledge Base Quick Access -->
+            <div class="sidebar-section">
+                <div class="section-header" onclick="toggleKnowledgeSection()">
+                    <span>📚 Knowledge Base</span>
+                    <span class="toggle-icon" id="knowledgeToggle">▼</span>
+                </div>
+                <div class="section-content" id="knowledgeSection">
+                    <div class="knowledge-quick-stats">
+                        <div class="quick-stat">
+                            <span class="stat-number" id="inboxNotesCount">0</span>
+                            <span class="stat-label">Inbox</span>
+                        </div>
+                        <div class="quick-stat">
+                            <span class="stat-number" id="userBooksCount">0</span>
+                            <span class="stat-label">Books</span>
+                        </div>
+                    </div>
+                    <button id="openKnowledgeBtn" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 8px;">
+                        🗂️ Organize Notes
+                    </button>
+                </div>
+            </div>
+
             <div id="conversationList" class="conversation-list">
                 <!-- Conversations will be loaded here -->
             </div>
@@ -35,7 +62,10 @@
         <!-- Main Chat Area -->
         <div class="chat-main">
             <div id="chatHeader" class="chat-header">
-                <h3 id="chatTitle">Select a conversation</h3>
+                <div class="header-left">
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+                    <h3 id="chatTitle">Select a conversation</h3>
+                </div>
                 <div class="header-actions">
                     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
                 </div>
