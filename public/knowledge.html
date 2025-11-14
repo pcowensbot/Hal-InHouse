@@ -8,10 +8,13 @@
 </head>
 <body>
     <div class="chat-container">
+        <!-- Mobile Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebarOnMobile()"></div>
+
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
-            <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">☰</button>
             <div class="sidebar-header">
+                <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">☰</button>
                 <h2>📚 Knowledge Base</h2>
                 <button id="newBookBtn" class="btn btn-primary btn-sm">➕ New Book</button>
             </div>
@@ -46,7 +49,10 @@
         <!-- Main Content Area -->
         <div class="chat-main">
             <div class="chat-header">
-                <h3 id="viewTitle">📥 Inbox</h3>
+                <div class="header-left">
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+                    <h3 id="viewTitle">📥 Inbox</h3>
+                </div>
                 <div class="header-actions">
                     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
                 </div>

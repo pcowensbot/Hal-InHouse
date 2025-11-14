@@ -31,7 +31,21 @@ function toggleTheme() {
 // Sidebar toggle
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
     sidebar.classList.toggle('collapsed');
+    overlay.classList.toggle('collapsed');
+}
+
+// Close sidebar on mobile when clicking overlay
+function closeSidebarOnMobile() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    if (window.innerWidth <= 768) {
+        sidebar.classList.add('collapsed');
+        overlay.classList.add('collapsed');
+    }
 }
 
 // API helper

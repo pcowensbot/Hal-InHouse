@@ -274,14 +274,17 @@ body {
     border: none;
     font-size: 20px;
     cursor: pointer;
-    padding: 5px;
+    padding: 8px;
     color: var(--text-light);
-    transition: color 0.2s;
-    margin-bottom: 10px;
+    transition: all 0.2s;
+    align-self: flex-end;
+    margin-bottom: 8px;
+    border-radius: 6px;
 }
 
 .collapse-btn:hover {
     color: var(--text);
+    background: var(--background);
 }
 
 .sidebar-header {
