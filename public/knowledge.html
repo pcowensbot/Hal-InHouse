@@ -21,11 +21,11 @@
 
             <!-- Quick Nav -->
             <div class="knowledge-nav">
-                <button class="nav-btn active" data-view="inbox" onclick="showView('inbox')">
-                    📥 Inbox <span id="inboxCount" class="count-badge">0</span>
+                <button class="nav-btn active" data-view="inbox" onclick="showView('inbox')" title="Inbox">
+                    📥 <span id="inboxCount" class="count-badge">0</span>
                 </button>
-                <button class="nav-btn" data-view="books" onclick="showView('books')">
-                    📚 All Books
+                <button class="nav-btn" data-view="books" onclick="showView('books')" title="All Books">
+                    📚
                 </button>
             </div>
 
@@ -39,9 +39,9 @@
                     <span id="userName"></span>
                 </div>
                 <div class="footer-buttons">
-                    <button id="chatBtn" class="btn btn-secondary btn-sm">💬 Chat</button>
-                    <button id="dashboardBtn" class="btn btn-primary btn-sm" style="display: none;">📊 Dashboard</button>
-                    <button id="logoutBtn" class="btn btn-secondary btn-sm">Logout</button>
+                    <button id="chatBtn" class="btn btn-secondary btn-sm" title="Chat">💬</button>
+                    <button id="dashboardBtn" class="btn btn-primary btn-sm" style="display: none;" title="Dashboard">📊</button>
+                    <button id="logoutBtn" class="btn btn-secondary btn-sm" title="Logout">🚪</button>
                 </div>
             </div>
         </div>
