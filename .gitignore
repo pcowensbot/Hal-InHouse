@@ -39,3 +39,7 @@ public/generated-images/*.jpeg
 
 # Archive folder (old documentation)
 .archive/
+
+# Claude Context System - Session logs are local only
+.claude/sessions/*.md
+!.claude/sessions/.gitkeep
