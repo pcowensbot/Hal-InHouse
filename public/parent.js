@@ -32,10 +32,23 @@ function toggleTheme() {
     updateThemeIcon(newTheme);
 }
 
-// Sidebar toggle
+// Sidebar toggle with persistence
 function toggleSidebar() {
     const sidebar = document.querySelector('.sidebar');
     sidebar.classList.toggle('collapsed');
+
+    // Save sidebar state
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    localStorage.setItem('hal_sidebar_collapsed', isCollapsed);
+}
+
+// Initialize sidebar state
+function initSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const isCollapsed = localStorage.getItem('hal_sidebar_collapsed') === 'true';
+    if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+    }
 }
 
 // API helper
@@ -66,6 +79,7 @@ async function apiCall(endpoint, options = {}) {
 // Initialize
 document.getElementById('userName').textContent = user.firstName;
 initTheme();
+initSidebar();
 
 // Tab switching
 function showTab(tabName) {

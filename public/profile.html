@@ -52,14 +52,31 @@
                 <!-- Theme Section -->
                 <div class="profile-section">
                     <h2>Theme</h2>
+                    <p style="color: var(--text-light); font-size: 14px; margin-bottom: 15px;">Choose your preferred color theme</p>
                     <div class="theme-selector">
                         <div class="theme-option" id="lightTheme" onclick="selectTheme('light')">
-                            <div style="font-size: 32px; margin-bottom: 10px;">☀️</div>
-                            <div>Light Mode</div>
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);"></div>
+                            <div class="theme-name">Light</div>
                         </div>
                         <div class="theme-option" id="darkTheme" onclick="selectTheme('dark')">
-                            <div style="font-size: 32px; margin-bottom: 10px;">🌙</div>
-                            <div>Dark Mode</div>
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);"></div>
+                            <div class="theme-name">Dark Blue</div>
+                        </div>
+                        <div class="theme-option" id="darkPurpleTheme" onclick="selectTheme('dark-purple')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1a0b2e 0%, #2d1b4e 100%);"></div>
+                            <div class="theme-name">Dark Purple</div>
+                        </div>
+                        <div class="theme-option" id="darkGreenTheme" onclick="selectTheme('dark-green')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #0a2f23 0%, #1a3d32 100%);"></div>
+                            <div class="theme-name">Dark Green</div>
+                        </div>
+                        <div class="theme-option" id="darkBlackTheme" onclick="selectTheme('dark-black')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);"></div>
+                            <div class="theme-name">True Black</div>
+                        </div>
+                        <div class="theme-option" id="darkRedTheme" onclick="selectTheme('dark-red')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #2b0d0d 0%, #3d1414 100%);"></div>
+                            <div class="theme-name">Dark Red</div>
                         </div>
                     </div>
                 </div>

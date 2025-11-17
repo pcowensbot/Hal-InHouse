@@ -39,8 +39,25 @@ function initTheme() {
 }
 
 function updateThemeSelection(theme) {
-    document.getElementById('lightTheme').classList.toggle('active', theme === 'light');
-    document.getElementById('darkTheme').classList.toggle('active', theme === 'dark');
+    // Remove active class from all themes
+    const themes = ['lightTheme', 'darkTheme', 'darkPurpleTheme', 'darkGreenTheme', 'darkBlackTheme', 'darkRedTheme'];
+    themes.forEach(t => {
+        const element = document.getElementById(t);
+        if (element) element.classList.remove('active');
+    });
+
+    // Add active class to selected theme
+    const themeMap = {
+        'light': 'lightTheme',
+        'dark': 'darkTheme',
+        'dark-purple': 'darkPurpleTheme',
+        'dark-green': 'darkGreenTheme',
+        'dark-black': 'darkBlackTheme',
+        'dark-red': 'darkRedTheme'
+    };
+
+    const activeTheme = document.getElementById(themeMap[theme]);
+    if (activeTheme) activeTheme.classList.add('active');
 }
 
 function selectTheme(theme) {
@@ -62,9 +79,10 @@ if (user.role === 'PARENT') {
 
 // Load avatar
 function loadAvatar() {
-    const savedAvatar = localStorage.getItem('hal_avatar');
+    // Use user-specific key to prevent avatar conflicts between users
+    const savedAvatar = localStorage.getItem(`hal_avatar_${user.id}`);
     const avatarPreview = document.getElementById('avatarPreview');
-    
+
     if (savedAvatar) {
         avatarPreview.innerHTML = `<img src="${savedAvatar}" alt="Avatar">`;
     } else {
@@ -92,9 +110,10 @@ function handleAvatarUpload(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         const avatarData = e.target.result;
-        localStorage.setItem('hal_avatar', avatarData);
+        // Use user-specific key to prevent avatar conflicts between users
+        localStorage.setItem(`hal_avatar_${user.id}`, avatarData);
         loadAvatar();
-        
+
         // In a real app, you'd upload this to the server
         // For now, we're just storing it in localStorage
         showMessage('Avatar updated successfully!', 'success');
@@ -104,7 +123,8 @@ function handleAvatarUpload(event) {
 
 // Remove avatar
 function removeAvatar() {
-    localStorage.removeItem('hal_avatar');
+    // Use user-specific key to prevent avatar conflicts between users
+    localStorage.removeItem(`hal_avatar_${user.id}`);
     loadAvatar();
     showMessage('Avatar removed', 'success');
 }
@@ -127,7 +147,7 @@ async function updateProfile() {
         showMessage('Profile updated successfully!', 'success');
         
         // Reload avatar with new initial
-        if (!localStorage.getItem('hal_avatar')) {
+        if (!localStorage.getItem(`hal_avatar_${user.id}`)) {
             loadAvatar();
         }
     } catch (error) {

@@ -28,10 +28,23 @@ function toggleTheme() {
     updateThemeIcon(newTheme);
 }
 
-// Sidebar toggle
+// Sidebar toggle with persistence
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     sidebar.classList.toggle('collapsed');
+
+    // Save sidebar state
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    localStorage.setItem('hal_sidebar_collapsed', isCollapsed);
+}
+
+// Initialize sidebar state
+function initSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const isCollapsed = localStorage.getItem('hal_sidebar_collapsed') === 'true';
+    if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+    }
 }
 
 // Auto-resize textarea
@@ -77,8 +90,9 @@ if (user.role === 'PARENT') {
     document.getElementById('dashboardBtn').style.display = 'block';
 }
 
-// Initialize theme
+// Initialize theme and sidebar
 initTheme();
+initSidebar();
 
 // Load conversations
 async function loadConversations() {
