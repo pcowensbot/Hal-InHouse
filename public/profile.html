@@ -254,6 +254,49 @@
                         <div id="passwordError" class="error"></div>
                     </form>
                 </div>
+
+                <!-- Delete Account Section -->
+                <div class="profile-section" style="border-color: var(--danger);">
+                    <h2 style="color: var(--danger);">⚠️ Delete Account</h2>
+                    <p style="color: var(--text-light); margin-bottom: 20px;">
+                        This action cannot be undone. Please choose how you'd like to proceed:
+                    </p>
+
+                    <div class="delete-options">
+                        <div class="delete-option">
+                            <h3>🗄️ Archive & Delete</h3>
+                            <p>Download all your conversations before deletion. You'll receive a JSON file with all your chat history.</p>
+                            <button type="button" class="btn btn-secondary" onclick="showDeleteModal('archive')">
+                                Archive & Delete Account
+                            </button>
+                        </div>
+
+                        <div class="delete-option">
+                            <h3>🗑️ Complete Deletion</h3>
+                            <p>Permanently delete everything with no backup. All conversations and data will be lost forever.</p>
+                            <button type="button" class="btn btn-danger" onclick="showDeleteModal('complete')">
+                                Delete Everything
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <h2>Confirm Account Deletion</h2>
+            <p id="deleteModalMessage"></p>
+            <div class="form-group">
+                <label>Enter your password to confirm:</label>
+                <input type="password" id="deletePassword" placeholder="Your password">
+            </div>
+            <div id="deleteError" class="error"></div>
+            <div class="modal-buttons">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">Delete Account</button>
             </div>
         </div>
     </div>

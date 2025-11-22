@@ -302,4 +302,79 @@ router.post('/change-password', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete user account
+router.post('/delete-account', authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const { deleteType, password } = req.body; // deleteType: 'complete' or 'archive'
+
+    if (!deleteType || !password) {
+      return res.status(400).json({ error: 'Delete type and password required' });
+    }
+
+    // Get user
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        conversations: {
+          include: {
+            messages: true
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify password
+    const validPassword = await bcrypt.compare(password, user.passwordHash);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Incorrect password' });
+    }
+
+    let archiveData = null;
+
+    if (deleteType === 'archive') {
+      // Create archive of all conversations
+      archiveData = {
+        user: {
+          email: user.email,
+          firstName: user.firstName,
+          deletedAt: new Date().toISOString()
+        },
+        conversations: user.conversations.map(conv => ({
+          id: conv.id,
+          title: conv.title,
+          createdAt: conv.createdAt,
+          updatedAt: conv.updatedAt,
+          messages: conv.messages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+            createdAt: msg.createdAt,
+            modelUsed: msg.modelUsed
+          }))
+        }))
+      };
+    }
+
+    // Delete user (cascade will delete all related data)
+    await prisma.user.delete({
+      where: { id: userId }
+    });
+
+    console.log(`User account deleted: ${user.email} (Type: ${deleteType})`);
+
+    res.json({
+      success: true,
+      message: 'Account deleted successfully',
+      archive: archiveData
+    });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+
 export default router;

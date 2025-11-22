@@ -534,6 +534,82 @@ function setupAutoCollapse() {
     });
 }
 
+// Delete account functionality
+let deleteType = null;
+
+function showDeleteModal(type) {
+    deleteType = type;
+    const modal = document.getElementById('deleteModal');
+    const message = document.getElementById('deleteModalMessage');
+
+    if (type === 'archive') {
+        message.textContent = 'Your account will be deleted and all conversations will be downloaded as a backup file. This action cannot be undone.';
+    } else {
+        message.textContent = 'Your account and ALL data will be permanently deleted with no backup. This action cannot be undone.';
+    }
+
+    document.getElementById('deletePassword').value = '';
+    document.getElementById('deleteError').textContent = '';
+    modal.classList.add('active');
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    modal.classList.remove('active');
+    deleteType = null;
+}
+
+async function confirmDelete() {
+    const password = document.getElementById('deletePassword').value;
+    const errorDiv = document.getElementById('deleteError');
+
+    if (!password) {
+        errorDiv.textContent = 'Please enter your password';
+        return;
+    }
+
+    errorDiv.textContent = '';
+
+    try {
+        const response = await apiCall('/api/auth/delete-account', {
+            method: 'POST',
+            body: JSON.stringify({
+                deleteType: deleteType,
+                password: password
+            })
+        });
+
+        if (response.success) {
+            // If archive type, download the data
+            if (deleteType === 'archive' && response.archive) {
+                downloadArchive(response.archive);
+            }
+
+            // Clear localStorage and redirect to login
+            localStorage.clear();
+            alert('Your account has been deleted successfully.');
+            window.location.href = '/';
+        }
+    } catch (error) {
+        errorDiv.textContent = error.message || 'Failed to delete account';
+    }
+}
+
+function downloadArchive(archiveData) {
+    const dataStr = JSON.stringify(archiveData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    const timestamp = new Date().toISOString().split('T')[0];
+    link.download = 'hal-archive-' + archiveData.user.email + '-' + timestamp + '.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
 // Initialize
 initTheme();
 loadAvatar();
