@@ -1,7 +1,7 @@
 # HAL In-House - Claude Context
 
-> **Last Updated:** 2025-11-17
-> **Version:** 1.0.0
+> **Last Updated:** 2025-11-22
+> **Version:** 1.1.0
 > **Status:** Production - Active Development
 
 ## 🎯 Project Vision
@@ -14,17 +14,23 @@ HAL is a multi-agent AI system designed for families, featuring a web interface,
 - ✅ Multi-agent system with dynamic creation and management
 - ✅ Real-time web interface with chat and team monitoring
 - ✅ Voice input/output (STT/TTS) with multiple voices
-- ✅ SQLite database with conversation history and agent persistence
+- ✅ PostgreSQL database with conversation history and agent persistence
 - ✅ PM2 production deployment configuration
 - ✅ Comprehensive tool system (web search, file ops, code execution)
 - ✅ Agent-to-agent communication framework
 - ✅ Invite-only authentication system for families
-- ✅ Parent dashboard with invite management
+- ✅ Parent dashboard with invite management and user deletion
 - ✅ Email invite functionality
 - ✅ Knowledge Base backend (database schema + API)
 - ✅ Star functionality on AI responses in chat
 - ✅ Conversation rename functionality
-- ✅ Improved mobile responsiveness
+- ✅ Mobile responsiveness with fixed sidebar scroll
+- ✅ Theme consistency across all pages
+- ✅ Database-backed user avatars
+- ✅ Diverse font selection (18 fonts in 3 categories)
+- ✅ Live font preview in profile settings
+- ✅ User account deletion with archive functionality
+- ✅ Parent/admin user management with archive capability
 
 ### In Progress
 - 🔨 Knowledge Base UI implementation (backend complete, frontend pending)
@@ -126,6 +132,26 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - Socket.io for real-time updates
 
 ## 📝 Recent Sessions
+
+### Session 7 (2025-11-22) - UI Improvements & User Management
+- Fixed mobile sidebar scroll causing page refresh
+- Added theme consistency across all pages (Knowledge Base fixed)
+- Added 9 new fonts with live preview (18 total fonts in categories)
+- Fixed avatar display using database-backed avatars
+- Implemented user account deletion with archive functionality
+- Moved archive feature to Family Members page for parent/admin control
+- Simplified profile deletion to complete-only for users
+- Set user 'fraz' as SUPER_ADMIN
+- Enhanced menu blocks with accent color borders
+
+**Major Features**:
+- Mobile overscroll fixes (position: fixed, overscroll-behavior)
+- Font categories: Professional, Easy to Read, Fun & Whimsical
+- Archive downloads conversations as JSON before deletion
+- Parent/admin can archive family members' data
+- Code blocks always use monospace regardless of body font
+
+**Commits**: `63792df`, `40e240d`, `9018030`, `0f56623`, `7a54859`
 
 ### Session 6 (2025-11-17) - Context System Migration
 - Migrated from WORKLOG.md to Claude Context System
