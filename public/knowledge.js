@@ -52,6 +52,7 @@ loadBooks();
 loadNotes();
 loadTrainingCount();
 initTheme();
+loadCustomization();
 loadSidebarAvatar();
 initMobileSidebar();
 setupAutoCollapse();
@@ -515,25 +516,60 @@ function formatMessage(text) {
 // ========== Theme & UI ==========
 
 function initTheme() {
-    const savedTheme = localStorage.getItem('hal_theme');
-    if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        document.querySelectorAll('.theme-toggle').forEach(btn => {
-            btn.textContent = '☀️';
-        });
-    }
+    const savedTheme = localStorage.getItem('hal_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+function updateThemeIcon(theme) {
+    document.querySelectorAll('.theme-toggle').forEach(btn => {
+        btn.textContent = theme === 'dark' || theme.startsWith('dark-') ? '☀️' : '🌙';
+    });
 }
 
 function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'dark' || currentTheme.startsWith('dark-') ? 'light' : 'dark';
 
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('hal_theme', newTheme);
+    updateThemeIcon(newTheme);
+}
 
-    document.querySelectorAll('.theme-toggle').forEach(btn => {
-        btn.textContent = newTheme === 'dark' ? '☀️' : '🌙';
-    });
+// Load and apply customization
+function loadCustomization() {
+    const saved = localStorage.getItem('hal_customization');
+    if (saved) {
+        const customization = JSON.parse(saved);
+
+        // Font family
+        if (customization.fontFamily && customization.fontFamily !== 'system') {
+            document.body.style.fontFamily = customization.fontFamily;
+        }
+
+        // Font size
+        const fontSizeScales = [0.9, 1.0, 1.1];
+        if (customization.fontSize !== undefined) {
+            document.documentElement.style.fontSize = `${fontSizeScales[customization.fontSize] * 16}px`;
+        }
+
+        // Accent color
+        if (customization.accentColor) {
+            document.documentElement.style.setProperty('--primary', customization.accentColor);
+            const darkerColor = adjustColorBrightness(customization.accentColor, -20);
+            document.documentElement.style.setProperty('--primary-dark', darkerColor);
+        }
+    }
+}
+
+// Helper function to adjust color brightness
+function adjustColorBrightness(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+    const G = Math.max(0, Math.min(255, (num >> 8 & 0x00FF) + amt));
+    const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+    return '#' + (0x1000000 + (R << 16) + (G << 8) + B).toString(16).slice(1);
 }
 
 function loadSidebarAvatar() {

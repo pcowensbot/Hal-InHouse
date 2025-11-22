@@ -1243,6 +1243,7 @@ body {
     border-radius: 12px;
     box-shadow: var(--shadow);
     margin-bottom: 20px;
+    border: 2px solid var(--primary);
 }
 
 .profile-section h2 {
@@ -1700,7 +1701,7 @@ body.sidebar-open {
 }
 
 .color-option.selected {
-    border-color: var(--text);
+    border-color: var(--primary);
     box-shadow: 0 0 0 3px var(--background);
 }
 
@@ -1733,6 +1734,18 @@ body.sidebar-open {
 
 .font-size-control button {
     min-width: 50px;
+}
+
+.font-preview {
+    margin-top: 12px;
+    padding: 15px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 18px;
+    text-align: center;
+    color: var(--text);
+    transition: font-family 0.2s;
 }
 
 /* Font Family Import */

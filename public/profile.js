@@ -397,12 +397,27 @@ function updateCustomizationUI() {
             option.classList.toggle('selected', option.dataset.borderColor === customization.avatarBorderColor);
         });
     }
+
+    // Update font preview
+    updateFontPreview();
 }
 
 // Update font family
 function updateFontFamily() {
     customization.fontFamily = document.getElementById('fontFamily').value;
     applyCustomization();
+    updateFontPreview();
+}
+
+function updateFontPreview() {
+    const fontPreview = document.getElementById('fontPreview');
+    if (fontPreview) {
+        if (customization.fontFamily !== 'system') {
+            fontPreview.style.fontFamily = customization.fontFamily;
+        } else {
+            fontPreview.style.fontFamily = '';
+        }
+    }
 }
 
 // Adjust font size
