@@ -2199,3 +2199,286 @@ body.sidebar-open {
     font-size: 12px;
     color: var(--text-light);
 }
+
+/* ========== Knowledge Base Styles ========== */
+
+.kb-sidebar-section {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px 0;
+}
+
+.kb-sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px 10px;
+}
+
+.kb-sidebar-header h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.books-list {
+    padding: 0 10px;
+}
+
+.book-item {
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.book-item:hover {
+    background: var(--background);
+}
+
+.book-item.active {
+    background: var(--primary);
+    color: white;
+}
+
+.book-item.active .book-count {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.book-item.marked-for-training {
+    border-left: 3px solid #8b5cf6;
+}
+
+.book-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.book-name {
+    font-weight: 500;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.book-count {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 2px;
+}
+
+.book-actions {
+    display: flex;
+    gap: 5px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.book-item:hover .book-actions {
+    opacity: 1;
+}
+
+.btn-icon-only {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.btn-icon-only:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.btn-icon-only.active {
+    background: #8b5cf6;
+    color: white;
+}
+
+[data-theme="dark"] .btn-icon-only:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.placeholder-sm {
+    text-align: center;
+    padding: 15px;
+    color: var(--text-light);
+    font-size: 13px;
+}
+
+/* KB Search Bar */
+.kb-search-bar {
+    display: flex;
+    gap: 10px;
+    padding: 15px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.kb-search-bar input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--background);
+    color: var(--text);
+    font-size: 14px;
+}
+
+.kb-search-bar select {
+    padding: 10px 15px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--background);
+    color: var(--text);
+    font-size: 14px;
+}
+
+/* KB Content */
+.kb-content {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 180px);
+}
+
+.notes-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.note-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.note-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.note-card.marked-for-training {
+    border-left: 4px solid #8b5cf6;
+    background: linear-gradient(to right, rgba(139, 92, 246, 0.05), var(--surface));
+}
+
+.note-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.note-title {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text);
+    flex: 1;
+}
+
+.note-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.note-content {
+    padding: 10px;
+    background: var(--background);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.5;
+}
+
+.note-message {
+    padding: 10px;
+    background: rgba(var(--primary-rgb), 0.05);
+    border-left: 3px solid var(--primary);
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.message-role {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 5px;
+}
+
+.message-text {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.5;
+}
+
+.note-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-light);
+}
+
+.note-book {
+    font-weight: 500;
+}
+
+.note-date {
+    font-size: 11px;
+}
+
+/* Training Badge */
+.training-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    color: white;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.brain-icon {
+    font-size: 16px;
+}
+
+/* Search Results */
+.search-results h3 {
+    margin-bottom: 20px;
+    color: var(--text);
+}
+
+.search-results mark {
+    background: #fef08a;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+[data-theme="dark"] .search-results mark {
+    background: #854d0e;
+    color: #fef3c7;
+}
+
+@media (max-width: 768px) {
+    .notes-list {
+        grid-template-columns: 1fr;
+    }
+
+    .kb-search-bar {
+        flex-direction: column;
+    }
+}

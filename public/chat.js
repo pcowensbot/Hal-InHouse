@@ -491,6 +491,11 @@ document.getElementById('messageInput').addEventListener('keydown', (e) => {
     }
 });
 
+// Knowledge Base button
+document.getElementById('knowledgeBtn').addEventListener('click', () => {
+    window.location.href = '/knowledge.html';
+});
+
 // Profile button
 document.getElementById('profileBtn').addEventListener('click', () => {
     window.location.href = '/profile.html';
