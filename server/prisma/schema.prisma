@@ -16,6 +16,8 @@ model User {
   passwordHash  String
   firstName     String
   role          Role           @default(CHILD)
+  avatar        String?        @db.Text // Base64 encoded image or URL
+  isActive      Boolean        @default(true) // Can be disabled by parents
   createdAt     DateTime       @default(now())
   conversations Conversation[]
   books         Book[]
@@ -27,8 +29,9 @@ model User {
 }
 
 enum Role {
-  PARENT
-  CHILD
+  SUPER_ADMIN // First account created
+  PARENT      // Additional parent accounts
+  CHILD       // Child accounts
 }
 
 model Conversation {

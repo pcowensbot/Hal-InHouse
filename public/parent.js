@@ -165,12 +165,11 @@ async function apiCall(endpoint, options = {}) {
 // Load sidebar avatar
 function loadSidebarAvatar() {
     const sidebarAvatar = document.getElementById('sidebarAvatar');
-    const savedAvatar = localStorage.getItem('hal_avatar');
     const customization = JSON.parse(localStorage.getItem('hal_customization') || '{}');
 
     // Set avatar content
-    if (savedAvatar) {
-        sidebarAvatar.innerHTML = `<img src="${savedAvatar}" alt="Avatar">`;
+    if (user.avatar) {
+        sidebarAvatar.innerHTML = `<img src="${user.avatar}" alt="Avatar">`;
     } else {
         sidebarAvatar.textContent = user.firstName.charAt(0).toUpperCase();
     }
@@ -427,21 +426,43 @@ async function loadUsers() {
         
         const usersDiv = document.getElementById('usersList');
         usersDiv.innerHTML = users.map(u => {
-            const savedAvatar = localStorage.getItem('hal_avatar');
-            const avatarContent = savedAvatar 
-                ? `<img src="${savedAvatar}" alt="${u.firstName}">` 
+            const avatarContent = u.avatar
+                ? `<img src="${u.avatar}" alt="${u.firstName}">`
                 : u.firstName.charAt(0).toUpperCase();
-            
+
+            // Determine role display text
+            let roleText = u.role;
+            if (u.role === 'SUPER_ADMIN') roleText = 'Super Admin';
+            else if (u.role === 'PARENT') roleText = 'Parent';
+            else if (u.role === 'CHILD') roleText = 'Child';
+
+            // Determine role badge class
+            const badgeClass = (u.role === 'SUPER_ADMIN' || u.role === 'PARENT') ? 'badge-primary' : 'badge-secondary';
+
+            // Don't show toggle button for current user
+            const isCurrentUser = u.id === user.id;
+            const toggleButton = !isCurrentUser
+                ? `<button onclick="toggleUserStatus('${u.id}')" class="btn btn-sm ${u.isActive ? 'btn-secondary' : 'btn-primary'}">
+                       ${u.isActive ? 'Disable' : 'Enable'}
+                   </button>`
+                : '';
+
             return `
-                <div class="user-card">
+                <div class="user-card ${!u.isActive ? 'user-disabled' : ''}">
                     <div class="user-avatar">${avatarContent}</div>
                     <div class="user-details">
-                        <div class="user-name">${u.firstName}</div>
+                        <div class="user-name">
+                            ${u.firstName}
+                            ${!u.isActive ? '<span style="color: var(--danger); margin-left: 8px;">(Disabled)</span>' : ''}
+                        </div>
                         <div class="user-email">${u.email}</div>
                         <div class="user-meta">
-                            <span class="badge ${u.role === 'PARENT' ? 'badge-primary' : 'badge-secondary'}">${u.role}</span>
+                            <span class="badge ${badgeClass}">${roleText}</span>
                             <span>${u._count.conversations} conversations</span>
                         </div>
+                    </div>
+                    <div class="user-actions">
+                        ${toggleButton}
                     </div>
                 </div>
             `;
@@ -453,6 +474,21 @@ async function loadUsers() {
         document.getElementById('searchUserFilter').innerHTML = '<option value="">All Users</option>' + userOptions;
     } catch (error) {
         console.error('Failed to load users:', error);
+    }
+}
+
+// Toggle user active status (enable/disable)
+async function toggleUserStatus(userId) {
+    try {
+        const response = await apiCall(`/api/parent/users/${userId}/toggle-status`, {
+            method: 'PATCH',
+        });
+
+        alert(response.message);
+        await loadUsers(); // Reload the users list
+    } catch (error) {
+        console.error('Failed to toggle user status:', error);
+        alert('Failed to update user status: ' + error.message);
     }
 }
 

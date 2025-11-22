@@ -412,12 +412,12 @@ body {
 }
 
 .conversation-item.active {
-    background: #dbeafe;
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
     border-left: 3px solid var(--primary);
 }
 
 [data-theme="dark"] .conversation-item.active {
-    background: #1e3a8a;
+    background: color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
 .conversation-title {
@@ -731,13 +731,14 @@ body {
 }
 
 .nav-item.active {
-    background: #dbeafe;
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
     color: var(--primary);
     font-weight: 500;
+    border-left: 3px solid var(--primary);
 }
 
 [data-theme="dark"] .nav-item.active {
-    background: #1e3a8a;
+    background: color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
 .tab-content {
@@ -947,6 +948,21 @@ body {
     color: var(--text-light);
 }
 
+.user-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.user-card.user-disabled {
+    opacity: 0.6;
+    background: var(--background);
+}
+
+.user-card.user-disabled .user-avatar {
+    filter: grayscale(1);
+}
+
 .badge {
     display: inline-block;
     padding: 2px 8px;
@@ -956,7 +972,7 @@ body {
 }
 
 .badge-primary {
-    background: #dbeafe;
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
     color: var(--primary);
 }
 
@@ -966,7 +982,7 @@ body {
 }
 
 [data-theme="dark"] .badge-primary {
-    background: #1e3a8a;
+    background: color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
 [data-theme="dark"] .badge-secondary {
@@ -1141,11 +1157,11 @@ body {
 }
 
 .message-item.user {
-    background: #dbeafe;
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
 }
 
 [data-theme="dark"] .message-item.user {
-    background: #1e3a8a;
+    background: color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
 .msg-role {
@@ -1314,11 +1330,11 @@ body {
 
 .theme-option.active {
     border-color: var(--primary);
-    background: #dbeafe;
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
 }
 
 [data-theme="dark"] .theme-option.active {
-    background: #1e3a8a;
+    background: color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
 /* Invite Codes */

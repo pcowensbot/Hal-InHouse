@@ -100,19 +100,17 @@ if (user.role === 'PARENT') {
 
 // Load avatar
 function loadAvatar() {
-    // Use user-specific key to prevent avatar conflicts between users
-    const savedAvatar = localStorage.getItem(`hal_avatar_${user.id}`);
     const avatarPreview = document.getElementById('avatarPreview');
 
-    if (savedAvatar) {
-        avatarPreview.innerHTML = `<img src="${savedAvatar}" alt="Avatar">`;
+    if (user.avatar) {
+        avatarPreview.innerHTML = `<img src="${user.avatar}" alt="Avatar">`;
     } else {
         avatarPreview.innerHTML = user.firstName.charAt(0).toUpperCase();
     }
 }
 
 // Handle avatar upload
-function handleAvatarUpload(event) {
+async function handleAvatarUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -129,46 +127,72 @@ function handleAvatarUpload(event) {
     }
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         const avatarData = e.target.result;
-        // Use user-specific key to prevent avatar conflicts between users
-        localStorage.setItem(`hal_avatar_${user.id}`, avatarData);
-        loadAvatar();
 
-        // In a real app, you'd upload this to the server
-        // For now, we're just storing it in localStorage
-        showMessage('Avatar updated successfully!', 'success');
+        try {
+            const response = await apiCall('/api/auth/avatar', {
+                method: 'POST',
+                body: JSON.stringify({ avatar: avatarData }),
+            });
+
+            // Update local user object
+            user.avatar = avatarData;
+            localStorage.setItem('hal_user', JSON.stringify(user));
+
+            // Update display
+            loadAvatar();
+            showMessage('Avatar updated successfully!', 'success');
+        } catch (error) {
+            showMessage('Failed to update avatar: ' + error.message, 'error');
+        }
     };
     reader.readAsDataURL(file);
 }
 
 // Remove avatar
-function removeAvatar() {
-    // Use user-specific key to prevent avatar conflicts between users
-    localStorage.removeItem(`hal_avatar_${user.id}`);
-    loadAvatar();
-    showMessage('Avatar removed', 'success');
+async function removeAvatar() {
+    try {
+        await apiCall('/api/auth/avatar', {
+            method: 'DELETE',
+        });
+
+        // Update local user object
+        user.avatar = null;
+        localStorage.setItem('hal_user', JSON.stringify(user));
+
+        // Update display
+        loadAvatar();
+        showMessage('Avatar removed', 'success');
+    } catch (error) {
+        showMessage('Failed to remove avatar: ' + error.message, 'error');
+    }
 }
 
 // Update profile
 async function updateProfile() {
     const firstName = document.getElementById('displayName').value.trim();
-    
+
     if (!firstName) {
         showMessage('Name cannot be empty', 'error');
         return;
     }
 
     try {
-        // In a real app, you'd send this to the server
-        // For now, we'll just update localStorage
+        const response = await apiCall('/api/auth/profile', {
+            method: 'PATCH',
+            body: JSON.stringify({ firstName }),
+        });
+
+        // Update local user object
         user.firstName = firstName;
         localStorage.setItem('hal_user', JSON.stringify(user));
         document.getElementById('userName').textContent = firstName;
+
         showMessage('Profile updated successfully!', 'success');
-        
-        // Reload avatar with new initial
-        if (!localStorage.getItem(`hal_avatar_${user.id}`)) {
+
+        // Reload avatar with new initial if no avatar
+        if (!user.avatar) {
             loadAvatar();
         }
     } catch (error) {
