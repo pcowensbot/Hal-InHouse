@@ -13,6 +13,7 @@ import imageRoutes from './routes/image.js';
 import knowledgeRoutes from './routes/knowledge.js';
 import deviceRoutes from './routes/devices.js';
 import llmRoutes from './routes/llm.js';
+import adminRoutes from './routes/admin.js';
 
 // Import services
 import ollamaService from './services/ollama.js';
@@ -78,6 +79,7 @@ app.use('/api/image', imageRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/llm', llmRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve index.html for all other routes (SPA)
 app.get('*', (req, res) => {

@@ -243,6 +243,8 @@ function showTab(tabName) {
         loadInvites();
     } else if (tabName === 'devices') {
         loadDevices();
+    } else if (tabName === 'admin') {
+        loadAdminData();
     }
 }
 
@@ -873,6 +875,361 @@ async function deleteDevice(deviceId) {
     } catch (error) {
         console.error('Failed to delete device:', error);
         alert('Failed to delete device: ' + error.message);
+    }
+}
+
+// ========== Admin Section ==========
+
+// Load admin data
+async function loadAdminData() {
+    await Promise.all([
+        loadHardwareInfo(),
+        loadDiskUsage(),
+        loadModels(),
+    ]);
+}
+
+// Load hardware information
+async function loadHardwareInfo() {
+    try {
+        const hardware = await apiCall('/api/admin/hardware');
+        const hardwareDiv = document.getElementById('hardwareInfo');
+
+        let html = '';
+
+        // GPUs
+        if (hardware.gpus && hardware.gpus.length > 0) {
+            hardware.gpus.forEach(gpu => {
+                html += `
+                    <div class="hardware-card">
+                        <h3>🎮 GPU ${gpu.id}</h3>
+                        <div class="hardware-detail">
+                            <strong>Model</strong>
+                            <div class="hardware-value">${gpu.name}</div>
+                        </div>
+                        <div class="gpu-vram">
+                            <div><strong>VRAM Total:</strong> ${gpu.vramTotal} MB (${(gpu.vramTotal / 1024).toFixed(1)} GB)</div>
+                            <div><strong>VRAM Free:</strong> ${gpu.vramFree} MB (${(gpu.vramFree / 1024).toFixed(1)} GB)</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // RAM
+        if (hardware.ram) {
+            html += `
+                <div class="hardware-card">
+                    <h3>💾 System RAM</h3>
+                    <div class="hardware-detail">
+                        <strong>Total</strong>
+                        <div class="hardware-value">${(hardware.ram.total / 1024).toFixed(1)} GB</div>
+                    </div>
+                    <div class="hardware-detail">
+                        <strong>Available</strong>
+                        <div class="hardware-value">${(hardware.ram.available / 1024).toFixed(1)} GB</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // CPU
+        if (hardware.cpu && hardware.cpu.model) {
+            html += `
+                <div class="hardware-card">
+                    <h3>⚡ CPU</h3>
+                    <div class="hardware-detail">
+                        <strong>Model</strong>
+                        <div class="hardware-value">${hardware.cpu.model}</div>
+                    </div>
+                    <div class="hardware-detail">
+                        <strong>Cores</strong>
+                        <div class="hardware-value">${hardware.cpu.cores}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (!html) {
+            html = '<p class="placeholder">Hardware information not available</p>';
+        }
+
+        hardwareDiv.innerHTML = html;
+
+        // Show recommendations in model library based on hardware
+        showHardwareRecommendations(hardware);
+    } catch (error) {
+        console.error('Failed to load hardware info:', error);
+        document.getElementById('hardwareInfo').innerHTML = '<p class="error">Failed to load hardware information</p>';
+    }
+}
+
+// Show hardware-based model recommendations
+function showHardwareRecommendations(hardware) {
+    const recommendedDiv = document.getElementById('recommendedModels');
+
+    if (!hardware.gpus || hardware.gpus.length === 0) {
+        recommendedDiv.innerHTML = `
+            <h3>💡 Recommended for CPU</h3>
+            <p>No GPU detected. Here are lightweight models that run well on CPU:</p>
+            <div class="recommended-list">
+                <div class="recommended-model">
+                    <span><strong>phi3:mini</strong> - 2.3GB</span>
+                    <button onclick="pullModel('phi3:mini')" class="btn btn-sm btn-secondary">Download</button>
+                </div>
+                <div class="recommended-model">
+                    <span><strong>gemma2:2b</strong> - 1.6GB</span>
+                    <button onclick="pullModel('gemma2:2b')" class="btn btn-sm btn-secondary">Download</button>
+                </div>
+                <div class="recommended-model">
+                    <span><strong>llama3.2:3b</strong> - 2GB</span>
+                    <button onclick="pullModel('llama3.2:3b')" class="btn btn-sm btn-secondary">Download</button>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    const maxVram = Math.max(...hardware.gpus.map(g => g.vramTotal));
+    const vramGB = maxVram / 1024;
+
+    let recommendations = [];
+    if (vramGB >= 24) {
+        recommendations = [
+            { name: 'llama3.1:70b', size: '40GB', desc: 'Best reasoning and capabilities' },
+            { name: 'qwen2.5:72b', size: '41GB', desc: 'Top-tier model for complex tasks' },
+            { name: 'llama3.1:8b', size: '4.7GB', desc: 'Fast responses' },
+        ];
+    } else if (vramGB >= 16) {
+        recommendations = [
+            { name: 'llama3.1:70b', size: '40GB', desc: 'Powerful 70B model (with quantization)' },
+            { name: 'llama3.1:8b', size: '4.7GB', desc: 'Great all-around model' },
+            { name: 'mistral:7b', size: '4.1GB', desc: 'Efficient and capable' },
+        ];
+    } else if (vramGB >= 8) {
+        recommendations = [
+            { name: 'llama3.1:8b', size: '4.7GB', desc: 'Best for 8GB VRAM' },
+            { name: 'mistral:7b', size: '4.1GB', desc: 'Efficient alternative' },
+            { name: 'qwen2.5-coder:7b', size: '4.7GB', desc: 'For coding tasks' },
+        ];
+    } else if (vramGB >= 4) {
+        recommendations = [
+            { name: 'llama3.2:3b', size: '2GB', desc: 'Fast and lightweight' },
+            { name: 'phi3:mini', size: '2.3GB', desc: 'Capable small model' },
+            { name: 'gemma2:2b', size: '1.6GB', desc: 'Very lightweight' },
+        ];
+    }
+
+    recommendedDiv.innerHTML = `
+        <h3>💡 Recommended for Your ${vramGB.toFixed(0)}GB VRAM</h3>
+        <p>Based on your ${hardware.gpus[0].name}, these models will run smoothly:</p>
+        <div class="recommended-list">
+            ${recommendations.map(model => `
+                <div class="recommended-model">
+                    <span><strong>${model.name}</strong> - ${model.size} - ${model.desc}</span>
+                    <button onclick="pullModel('${model.name}')" class="btn btn-sm btn-secondary">Download</button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Load disk usage
+async function loadDiskUsage() {
+    try {
+        const usage = await apiCall('/api/admin/disk-usage');
+        const diskDiv = document.getElementById('diskUsage');
+
+        const formatBytes = (bytes) => {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        };
+
+        const usagePercent = ((usage.used / usage.total) * 100).toFixed(1);
+
+        let html = `
+            <div class="disk-total">
+                <strong>Total Disk:</strong> ${formatBytes(usage.total)} |
+                <strong>Used:</strong> ${formatBytes(usage.used)} (${usagePercent}%) |
+                <strong>Available:</strong> ${formatBytes(usage.available)}
+            </div>
+            <div class="disk-breakdown">
+        `;
+
+        if (usage.breakdown) {
+            for (const [key, data] of Object.entries(usage.breakdown)) {
+                const percent = usage.total > 0 ? ((data.bytes / usage.total) * 100).toFixed(1) : 0;
+                const countInfo = data.count !== undefined ? ` (${data.count} items)` : '';
+
+                html += `
+                    <div class="disk-item">
+                        <div class="disk-item-info">
+                            <div class="disk-item-label">${data.label}${countInfo}</div>
+                            <div class="disk-item-size">${formatBytes(data.bytes)}</div>
+                        </div>
+                        <div class="disk-item-bar">
+                            <div class="disk-item-fill" style="width: ${percent}%"></div>
+                        </div>
+                        <div class="disk-item-percent">${percent}%</div>
+                    </div>
+                `;
+            }
+        }
+
+        html += '</div>';
+        diskDiv.innerHTML = html;
+    } catch (error) {
+        console.error('Failed to load disk usage:', error);
+        document.getElementById('diskUsage').innerHTML = '<p class="error">Failed to load disk usage</p>';
+    }
+}
+
+// Load models
+async function loadModels() {
+    try {
+        const [models, defaultModelData] = await Promise.all([
+            apiCall('/api/admin/models'),
+            apiCall('/api/admin/settings/default-model'),
+        ]);
+
+        const modelsDiv = document.getElementById('modelsList');
+        const select = document.getElementById('defaultModelSelect');
+
+        // Populate default model dropdown
+        select.innerHTML = models.map(m =>
+            `<option value="${m.name}" ${m.name === defaultModelData.defaultModel ? 'selected' : ''}>${m.name}</option>`
+        ).join('');
+
+        if (models.length === 0) {
+            modelsDiv.innerHTML = '<p class="placeholder">No models installed yet. Use the Model Library to download one!</p>';
+            return;
+        }
+
+        modelsDiv.innerHTML = models.map(model => {
+            const sizeGB = (model.size / (1024 * 1024 * 1024)).toFixed(2);
+            const modifiedDate = new Date(model.modified_at).toLocaleDateString();
+
+            return `
+                <div class="model-card">
+                    <div class="model-info">
+                        <div class="model-name">${model.name}</div>
+                        <div class="model-details">
+                            <span>📦 ${sizeGB} GB</span>
+                            <span>📅 Modified: ${modifiedDate}</span>
+                            ${model.details?.parameter_size ? `<span>⚙️ ${model.details.parameter_size}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="model-actions-btns">
+                        <button onclick="deleteModel('${model.name}')" class="btn btn-secondary btn-sm">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Failed to load models:', error);
+        document.getElementById('modelsList').innerHTML = '<p class="error">Failed to load models</p>';
+    }
+}
+
+// Set default model
+async function setDefaultModel() {
+    const select = document.getElementById('defaultModelSelect');
+    const model = select.value;
+
+    try {
+        await apiCall('/api/admin/settings/default-model', {
+            method: 'POST',
+            body: JSON.stringify({ model }),
+        });
+
+        alert(`✅ Default model set to: ${model}`);
+    } catch (error) {
+        console.error('Failed to set default model:', error);
+        alert('Failed to set default model: ' + error.message);
+    }
+}
+
+// Refresh models list
+async function refreshModels() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span>🔄 Loading...</span>';
+    btn.disabled = true;
+
+    await loadModels();
+
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+}
+
+// Show model library
+function showModelLibrary() {
+    document.getElementById('modelLibraryModal').style.display = 'flex';
+}
+
+// Close model library
+function closeModelLibrary() {
+    document.getElementById('modelLibraryModal').style.display = 'none';
+}
+
+// Pull/download a model
+async function pullModel(modelName) {
+    const confirmed = confirm(`Download model: ${modelName}?\n\nThis may take several minutes depending on the model size and your internet connection.`);
+
+    if (!confirmed) return;
+
+    try {
+        // Disable the button
+        const allButtons = document.querySelectorAll(`button[onclick="pullModel('${modelName}')"]`);
+        allButtons.forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Downloading...';
+        });
+
+        await apiCall('/api/admin/models/pull', {
+            method: 'POST',
+            body: JSON.stringify({ name: modelName }),
+        });
+
+        alert(`✅ Model ${modelName} downloaded successfully!`);
+
+        // Reload models list
+        await loadModels();
+
+        // Close modal
+        closeModelLibrary();
+    } catch (error) {
+        console.error('Failed to pull model:', error);
+        alert(`Failed to download model: ${error.message}`);
+
+        // Re-enable buttons
+        const allButtons = document.querySelectorAll(`button[onclick="pullModel('${modelName}')"]`);
+        allButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.innerHTML = 'Download';
+        });
+    }
+}
+
+// Delete a model
+async function deleteModel(modelName) {
+    const confirmed = confirm(`Are you sure you want to delete model: ${modelName}?\n\nThis will free up disk space but you'll need to re-download it if you want to use it again.`);
+
+    if (!confirmed) return;
+
+    try {
+        await apiCall(`/api/admin/models/${encodeURIComponent(modelName)}`, {
+            method: 'DELETE',
+        });
+
+        alert(`✅ Model ${modelName} deleted successfully!`);
+        await loadModels();
+    } catch (error) {
+        console.error('Failed to delete model:', error);
+        alert(`Failed to delete model: ${error.message}`);
     }
 }
 

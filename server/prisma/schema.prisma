@@ -68,6 +68,7 @@ model Settings {
   id              Int      @id @default(1)
   householdName   String   @default("HAL")
   imageGenEnabled Boolean  @default(false)
+  defaultModel    String   @default("llama3.1:8b")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

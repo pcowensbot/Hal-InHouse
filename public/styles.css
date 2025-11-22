@@ -1852,3 +1852,350 @@ body.sidebar-open {
 .alert strong {
     font-weight: 600;
 }
+
+/* ========== Admin Section Styles ========== */
+
+.admin-section {
+    background: var(--surface);
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    box-shadow: var(--shadow);
+}
+
+.admin-section h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: var(--text);
+}
+
+/* Hardware Grid */
+.hardware-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.hardware-card {
+    background: var(--background);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.hardware-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-light);
+    text-transform: uppercase;
+}
+
+.hardware-detail {
+    margin-bottom: 10px;
+}
+
+.hardware-detail strong {
+    display: block;
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 3px;
+}
+
+.hardware-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.gpu-vram {
+    margin-top: 8px;
+    padding: 8px;
+    background: var(--surface);
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+/* Disk Usage */
+.disk-usage {
+    background: var(--background);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.disk-total {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.disk-breakdown {
+    display: grid;
+    gap: 15px;
+}
+
+.disk-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: var(--surface);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.disk-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.disk-item-label {
+    font-weight: 500;
+    color: var(--text);
+}
+
+.disk-item-size {
+    font-size: 13px;
+    color: var(--text-light);
+}
+
+.disk-item-bar {
+    flex: 1;
+    margin: 0 20px;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.disk-item-fill {
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.3s ease;
+}
+
+.disk-item-percent {
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* Model Management */
+.model-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.default-model-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: var(--background);
+    border-radius: 8px;
+}
+
+.default-model-section label {
+    font-weight: 500;
+    color: var(--text);
+}
+
+.default-model-section select {
+    flex: 1;
+    max-width: 300px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 14px;
+}
+
+.models-list {
+    display: grid;
+    gap: 15px;
+}
+
+.model-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: transform 0.2s;
+}
+
+.model-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.model-info {
+    flex: 1;
+}
+
+.model-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+}
+
+.model-details {
+    display: flex;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--text-light);
+}
+
+.model-actions-btns {
+    display: flex;
+    gap: 10px;
+}
+
+/* Model Library Modal */
+.modal-large {
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.model-recommendations {
+    background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+}
+
+.model-recommendations h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: white;
+}
+
+.model-recommendations p {
+    margin-bottom: 15px;
+    opacity: 0.95;
+}
+
+.recommended-list {
+    display: grid;
+    gap: 10px;
+}
+
+.recommended-model {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px 15px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.model-categories {
+    margin-top: 20px;
+}
+
+.model-categories h3 {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: var(--text);
+}
+
+.model-category {
+    margin-bottom: 30px;
+}
+
+.model-category h4 {
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: var(--text);
+}
+
+.model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.model-library-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 15px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.model-library-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.model-lib-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.model-lib-header strong {
+    font-size: 16px;
+    color: var(--text);
+}
+
+.model-lib-size {
+    font-size: 12px;
+    color: var(--text-light);
+    background: var(--background);
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.model-library-item p {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.model-library-item .btn {
+    width: 100%;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+/* Progress Indicator for Model Downloads */
+.download-progress {
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--background);
+    border-radius: 6px;
+}
+
+.progress-bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: var(--text-light);
+}
