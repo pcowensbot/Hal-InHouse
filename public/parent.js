@@ -439,13 +439,19 @@ async function loadUsers() {
             // Determine role badge class
             const badgeClass = (u.role === 'SUPER_ADMIN' || u.role === 'PARENT') ? 'badge-primary' : 'badge-secondary';
 
-            // Don't show toggle button for current user
+            // Don't show action buttons for current user
             const isCurrentUser = u.id === user.id;
-            const toggleButton = !isCurrentUser
+            const actionButtons = !isCurrentUser
                 ? `<button onclick="toggleUserStatus('${u.id}')" class="btn btn-sm ${u.isActive ? 'btn-secondary' : 'btn-primary'}">
                        ${u.isActive ? 'Disable' : 'Enable'}
+                   </button>
+                   <button onclick="showDeleteUserModal('${u.id}', '${u.firstName}', '${u.email}', 'archive')" class="btn btn-sm btn-secondary" title="Archive & Delete">
+                       🗄️ Archive
+                   </button>
+                   <button onclick="showDeleteUserModal('${u.id}', '${u.firstName}', '${u.email}', 'complete')" class="btn btn-sm btn-danger" title="Delete Completely">
+                       🗑️ Delete
                    </button>`
-                : '';
+                : '<span style="color: var(--text-light); font-size: 14px;">Your account</span>';
 
             return `
                 <div class="user-card ${!u.isActive ? 'user-disabled' : ''}">
@@ -462,7 +468,7 @@ async function loadUsers() {
                         </div>
                     </div>
                     <div class="user-actions">
-                        ${toggleButton}
+                        ${actionButtons}
                     </div>
                 </div>
             `;
@@ -1386,6 +1392,82 @@ async function updateMaintenanceStatus() {
             </div>
         `;
     }
+}
+
+// Delete user functionality
+let deleteUserData = null;
+
+function showDeleteUserModal(userId, userName, userEmail, deleteType) {
+    deleteUserData = { userId, userName, userEmail, deleteType };
+    const modal = document.getElementById('deleteUserModal');
+    const message = document.getElementById('deleteUserMessage');
+
+    if (deleteType === 'archive') {
+        message.innerHTML = `You are about to delete <strong>${userName}</strong> (${userEmail}).<br><br>All conversations will be downloaded as a backup file before deletion. This action cannot be undone.`;
+    } else {
+        message.innerHTML = `You are about to permanently delete <strong>${userName}</strong> (${userEmail}).<br><br>ALL data will be deleted with no backup. This action cannot be undone.`;
+    }
+
+    document.getElementById('deleteUserPassword').value = '';
+    document.getElementById('deleteUserError').textContent = '';
+    modal.classList.add('active');
+}
+
+function closeDeleteUserModal() {
+    const modal = document.getElementById('deleteUserModal');
+    modal.classList.remove('active');
+    deleteUserData = null;
+}
+
+async function confirmDeleteUser() {
+    const password = document.getElementById('deleteUserPassword').value;
+    const errorDiv = document.getElementById('deleteUserError');
+
+    if (!password) {
+        errorDiv.textContent = 'Please enter your password';
+        return;
+    }
+
+    errorDiv.textContent = '';
+
+    try {
+        const response = await apiCall('/api/parent/delete-user', {
+            method: 'POST',
+            body: JSON.stringify({
+                targetUserId: deleteUserData.userId,
+                deleteType: deleteUserData.deleteType,
+                password: password
+            })
+        });
+
+        if (response.success) {
+            // If archive type, download the data
+            if (deleteUserData.deleteType === 'archive' && response.archive) {
+                downloadUserArchive(response.archive);
+            }
+
+            closeDeleteUserModal();
+            alert(`User ${deleteUserData.userName} has been deleted successfully.`);
+            await loadUsers(); // Reload the user list
+        }
+    } catch (error) {
+        errorDiv.textContent = error.message || 'Failed to delete user';
+    }
+}
+
+function downloadUserArchive(archiveData) {
+    const dataStr = JSON.stringify(archiveData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    const timestamp = new Date().toISOString().split('T')[0];
+    link.download = 'hal-archive-' + archiveData.user.email + '-' + timestamp + '.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 // Load overview on start

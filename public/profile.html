@@ -258,27 +258,15 @@
                 <!-- Delete Account Section -->
                 <div class="profile-section" style="border-color: var(--danger);">
                     <h2 style="color: var(--danger);">⚠️ Delete Account</h2>
-                    <p style="color: var(--text-light); margin-bottom: 20px;">
-                        This action cannot be undone. Please choose how you'd like to proceed:
+                    <p style="color: var(--text-light); margin-bottom: 15px;">
+                        Permanently delete your account and all data. This action cannot be undone.
                     </p>
-
-                    <div class="delete-options">
-                        <div class="delete-option">
-                            <h3>🗄️ Archive & Delete</h3>
-                            <p>Download all your conversations before deletion. You'll receive a JSON file with all your chat history.</p>
-                            <button type="button" class="btn btn-secondary" onclick="showDeleteModal('archive')">
-                                Archive & Delete Account
-                            </button>
-                        </div>
-
-                        <div class="delete-option">
-                            <h3>🗑️ Complete Deletion</h3>
-                            <p>Permanently delete everything with no backup. All conversations and data will be lost forever.</p>
-                            <button type="button" class="btn btn-danger" onclick="showDeleteModal('complete')">
-                                Delete Everything
-                            </button>
-                        </div>
-                    </div>
+                    <p style="color: var(--text-light); margin-bottom: 20px; font-size: 14px;">
+                        <strong>Note:</strong> If you're a parent or admin, you can archive other users' accounts from the Family Members page.
+                    </p>
+                    <button type="button" class="btn btn-danger" onclick="showDeleteModal('complete')" style="width: 100%;">
+                        🗑️ Delete My Account
+                    </button>
                 </div>
             </div>
         </div>

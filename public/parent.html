@@ -546,6 +546,23 @@ P.S. This code is for one-time use only, so keep it safe! 🔒</textarea>
         </div>
     </div>
 
+    <!-- Delete User Modal -->
+    <div id="deleteUserModal" class="modal">
+        <div class="modal-content">
+            <h2>Confirm User Deletion</h2>
+            <p id="deleteUserMessage"></p>
+            <div class="form-group">
+                <label>Enter your password to confirm:</label>
+                <input type="password" id="deleteUserPassword" placeholder="Your password">
+            </div>
+            <div id="deleteUserError" class="error"></div>
+            <div class="modal-buttons">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteUserModal()">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteUser()">Delete User</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/parent.js?v=6"></script>
 </body>
 </html>

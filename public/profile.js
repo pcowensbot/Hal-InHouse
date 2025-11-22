@@ -542,11 +542,7 @@ function showDeleteModal(type) {
     const modal = document.getElementById('deleteModal');
     const message = document.getElementById('deleteModalMessage');
 
-    if (type === 'archive') {
-        message.textContent = 'Your account will be deleted and all conversations will be downloaded as a backup file. This action cannot be undone.';
-    } else {
-        message.textContent = 'Your account and ALL data will be permanently deleted with no backup. This action cannot be undone.';
-    }
+    message.textContent = 'Your account and ALL data will be permanently deleted with no backup. This action cannot be undone. Are you absolutely sure?';
 
     document.getElementById('deletePassword').value = '';
     document.getElementById('deleteError').textContent = '';

@@ -1,5 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 import prisma from '../config/database.js';
 import { authenticateToken, requireParent } from '../middleware/auth.js';
 
@@ -527,6 +528,96 @@ router.get('/knowledge/notes', async (req, res) => {
   } catch (error) {
     console.error('Get all notes error:', error);
     res.status(500).json({ error: 'Failed to fetch notes' });
+  }
+});
+
+// Delete user (parent/admin only)
+router.post('/delete-user', async (req, res) => {
+  try {
+    const { userId: parentId } = req.user;
+    const { targetUserId, deleteType, password } = req.body;
+
+    if (!targetUserId || !deleteType || !password) {
+      return res.status(400).json({ error: 'Target user ID, delete type, and password required' });
+    }
+
+    // Get parent user to verify password
+    const parent = await prisma.user.findUnique({
+      where: { id: parentId }
+    });
+
+    if (!parent) {
+      return res.status(404).json({ error: 'Parent user not found' });
+    }
+
+    // Verify password
+    const validPassword = await bcrypt.compare(password, parent.passwordHash);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Incorrect password' });
+    }
+
+    // Prevent deleting yourself through this endpoint
+    if (targetUserId === parentId) {
+      return res.status(400).json({ error: 'Use the profile page to delete your own account' });
+    }
+
+    // Get target user with conversations
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      include: {
+        conversations: {
+          include: {
+            messages: true
+          }
+        }
+      }
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'Target user not found' });
+    }
+
+    let archiveData = null;
+
+    if (deleteType === 'archive') {
+      // Create archive of all conversations
+      archiveData = {
+        user: {
+          email: targetUser.email,
+          firstName: targetUser.firstName,
+          deletedAt: new Date().toISOString(),
+          deletedBy: parent.email
+        },
+        conversations: targetUser.conversations.map(conv => ({
+          id: conv.id,
+          title: conv.title,
+          createdAt: conv.createdAt,
+          updatedAt: conv.updatedAt,
+          messages: conv.messages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+            createdAt: msg.createdAt,
+            modelUsed: msg.modelUsed
+          }))
+        }))
+      };
+    }
+
+    // Delete user (cascade will delete all related data)
+    await prisma.user.delete({
+      where: { id: targetUserId }
+    });
+
+    console.log(`User deleted by parent: ${targetUser.email} (Type: ${deleteType}, Deleted by: ${parent.email})`);
+
+    res.json({
+      success: true,
+      message: 'User deleted successfully',
+      archive: archiveData
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
   }
 });
 
