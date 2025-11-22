@@ -1456,6 +1456,15 @@ body.sidebar-open {
         display: none;
     }
 
+    /* Add bottom padding for better scrolling */
+    .conversation-list {
+        padding-bottom: 120px;
+    }
+
+    .nav-menu {
+        padding-bottom: 100px;
+    }
+
     /* Better touch targets */
     .btn {
         min-height: 44px;
