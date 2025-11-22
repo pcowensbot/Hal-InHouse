@@ -18,6 +18,8 @@ router.get('/users', async (req, res) => {
         email: true,
         firstName: true,
         role: true,
+        avatar: true,
+        isActive: true,
         createdAt: true,
         _count: {
           select: { conversations: true },
@@ -30,6 +32,57 @@ router.get('/users', async (req, res) => {
   } catch (error) {
     console.error('Get users error:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Toggle user active status (enable/disable)
+router.patch('/users/:id/toggle-status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const currentUser = req.user;
+
+    // Get the target user
+    const targetUser = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prevent disabling yourself
+    if (targetUser.id === currentUser.userId) {
+      return res.status(400).json({ error: 'Cannot disable your own account' });
+    }
+
+    // Prevent non-SUPER_ADMIN from disabling SUPER_ADMIN or PARENT
+    if (currentUser.role !== 'SUPER_ADMIN' && (targetUser.role === 'SUPER_ADMIN' || targetUser.role === 'PARENT')) {
+      return res.status(403).json({ error: 'Only super admin can disable parent accounts' });
+    }
+
+    // Toggle the status
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { isActive: !targetUser.isActive },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        role: true,
+        avatar: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: `User ${updatedUser.isActive ? 'enabled' : 'disabled'} successfully`,
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error('Toggle user status error:', error);
+    res.status(500).json({ error: 'Failed to toggle user status' });
   }
 });
 

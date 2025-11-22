@@ -26,6 +26,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(403).json({ error: 'Your account has been disabled. Please contact an administrator.' });
+    }
+
     // Check password
     const validPassword = await bcrypt.compare(password, user.passwordHash);
     if (!validPassword) {
@@ -46,6 +51,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         firstName: user.firstName,
         role: user.role,
+        avatar: user.avatar,
       },
     });
   } catch (error) {
@@ -96,13 +102,17 @@ router.post('/signup', async (req, res) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // Check if this is the first user (should be SUPER_ADMIN)
+    const userCount = await prisma.user.count();
+    const userRole = userCount === 0 ? 'SUPER_ADMIN' : (role || 'CHILD');
+
     // Create user and mark invite as used
     const user = await prisma.user.create({
       data: {
         email: email.toLowerCase(),
         passwordHash,
         firstName,
-        role: role || 'CHILD',
+        role: userRole,
       },
     });
 
@@ -129,11 +139,114 @@ router.post('/signup', async (req, res) => {
         email: user.email,
         firstName: user.firstName,
         role: user.role,
+        avatar: user.avatar,
       },
     });
   } catch (error) {
     console.error('Signup error:', error);
     res.status(500).json({ error: 'Signup failed' });
+  }
+});
+
+// Update Avatar
+router.post('/avatar', authenticateToken, async (req, res) => {
+  try {
+    const { avatar } = req.body;
+    const userId = req.user.userId;
+
+    if (!avatar) {
+      return res.status(400).json({ error: 'Avatar data required' });
+    }
+
+    // Validate avatar is base64 image data
+    if (!avatar.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Invalid avatar format' });
+    }
+
+    // Update user avatar
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { avatar },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        role: true,
+        avatar: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Avatar updated successfully',
+      user,
+    });
+  } catch (error) {
+    console.error('Avatar update error:', error);
+    res.status(500).json({ error: 'Failed to update avatar' });
+  }
+});
+
+// Remove Avatar
+router.delete('/avatar', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    // Remove user avatar
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { avatar: null },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        role: true,
+        avatar: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Avatar removed successfully',
+      user,
+    });
+  } catch (error) {
+    console.error('Avatar remove error:', error);
+    res.status(500).json({ error: 'Failed to remove avatar' });
+  }
+});
+
+// Update Profile Name
+router.patch('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { firstName } = req.body;
+    const userId = req.user.userId;
+
+    if (!firstName || !firstName.trim()) {
+      return res.status(400).json({ error: 'Name cannot be empty' });
+    }
+
+    // Update user name
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { firstName: firstName.trim() },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        role: true,
+        avatar: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user,
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 

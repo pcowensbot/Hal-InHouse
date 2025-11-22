@@ -948,6 +948,21 @@ body {
     color: var(--text-light);
 }
 
+.user-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.user-card.user-disabled {
+    opacity: 0.6;
+    background: var(--background);
+}
+
+.user-card.user-disabled .user-avatar {
+    filter: grayscale(1);
+}
+
 .badge {
     display: inline-block;
     padding: 2px 8px;
