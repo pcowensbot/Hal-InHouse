@@ -146,10 +146,13 @@ router.get('/search', async (req, res) => {
         contains: q,
         mode: 'insensitive',
       },
+      conversation: {
+        deletedAt: null, // Don't search deleted conversations
+      },
     };
 
     if (userId) {
-      where.conversation = { userId };
+      where.conversation.userId = userId;
     }
 
     const messages = await prisma.message.findMany({
