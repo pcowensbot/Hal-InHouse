@@ -241,6 +241,8 @@ function showTab(tabName) {
         loadUsers();
     } else if (tabName === 'invites') {
         loadInvites();
+    } else if (tabName === 'devices') {
+        loadDevices();
     }
 }
 
@@ -723,6 +725,127 @@ async function emailInviteCode(inviteId, code) {
     } catch (error) {
         console.error('Failed to email invite:', error);
         alert('Failed to record email: ' + error.message);
+    }
+}
+
+// ========== Device Management ==========
+
+// Load devices
+async function loadDevices() {
+    try {
+        const devices = await apiCall('/api/devices');
+        const devicesList = document.getElementById('devicesList');
+
+        if (devices.length === 0) {
+            devicesList.innerHTML = '<p class="placeholder">No devices linked yet. Create one to get started!</p>';
+            return;
+        }
+
+        devicesList.innerHTML = devices.map(device => `
+            <div class="device-card">
+                <div class="device-info">
+                    <div class="device-name">${escapeHtml(device.name)}</div>
+                    ${device.description ? `<div class="device-description">${escapeHtml(device.description)}</div>` : ''}
+                    <div class="device-meta">
+                        <span>📊 ${device.requestCount} requests</span>
+                        <span>🕒 Last used: ${device.lastUsedAt ? new Date(device.lastUsedAt).toLocaleString() : 'Never'}</span>
+                        <span>📅 Created: ${new Date(device.createdAt).toLocaleDateString()}</span>
+                    </div>
+                </div>
+                <div class="device-actions">
+                    <button onclick="deleteDevice('${device.id}')" class="btn btn-secondary btn-sm">Delete</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Failed to load devices:', error);
+        document.getElementById('devicesList').innerHTML = '<p class="error">Failed to load devices</p>';
+    }
+}
+
+// Show create device modal
+function showCreateDeviceModal() {
+    document.getElementById('createDeviceModal').style.display = 'flex';
+    document.getElementById('deviceName').value = '';
+    document.getElementById('deviceDescription').value = '';
+    document.getElementById('createDeviceError').textContent = '';
+}
+
+// Close create device modal
+function closeCreateDeviceModal() {
+    document.getElementById('createDeviceModal').style.display = 'none';
+}
+
+// Create device
+document.getElementById('createDeviceForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('deviceName').value.trim();
+    const description = document.getElementById('deviceDescription').value.trim();
+    const errorDiv = document.getElementById('createDeviceError');
+
+    if (!name) {
+        errorDiv.textContent = 'Device name is required';
+        return;
+    }
+
+    try {
+        const result = await apiCall('/api/devices', {
+            method: 'POST',
+            body: JSON.stringify({ name, description }),
+        });
+
+        // Close create modal
+        closeCreateDeviceModal();
+
+        // Show API key modal
+        document.getElementById('generatedApiKey').textContent = result.apiKey;
+        document.getElementById('apiKeyModal').style.display = 'flex';
+
+        // Reload devices
+        loadDevices();
+    } catch (error) {
+        console.error('Failed to create device:', error);
+        errorDiv.textContent = error.message || 'Failed to create device';
+    }
+});
+
+// Close API key modal
+function closeApiKeyModal() {
+    document.getElementById('apiKeyModal').style.display = 'none';
+}
+
+// Copy API key
+function copyApiKey() {
+    const apiKey = document.getElementById('generatedApiKey').textContent;
+    navigator.clipboard.writeText(apiKey).then(() => {
+        const btn = document.getElementById('copyApiKeyBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✅ Copied!';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy API key');
+    });
+}
+
+// Delete device
+async function deleteDevice(deviceId) {
+    if (!confirm('Are you sure you want to delete this device? This will revoke its API key.')) {
+        return;
+    }
+
+    try {
+        await apiCall(`/api/devices/${deviceId}`, {
+            method: 'DELETE',
+        });
+
+        loadDevices();
+    } catch (error) {
+        console.error('Failed to delete device:', error);
+        alert('Failed to delete device: ' + error.message);
     }
 }
 
