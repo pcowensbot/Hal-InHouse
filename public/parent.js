@@ -403,7 +403,7 @@ async function viewConversation(id) {
                         ${conversation.messages.map(msg => `
                             <div class="message-item ${msg.role}">
                                 <div class="msg-role">${msg.role === 'user' ? conversation.user.firstName : 'HAL'}</div>
-                                <div class="msg-content">${escapeHtml(msg.content)}</div>
+                                <div class="msg-content">${formatMessage(msg.content)}</div>
                                 <div class="msg-time">${new Date(msg.createdAt).toLocaleString()}</div>
                             </div>
                         `).join('')}
@@ -478,7 +478,7 @@ async function performSearch() {
                         <span class="result-user">${msg.conversation.user.firstName}</span>
                         <span class="result-date">${new Date(msg.createdAt).toLocaleString()}</span>
                     </div>
-                    <div class="result-content">${highlightText(escapeHtml(msg.content), query)}</div>
+                    <div class="result-content">${highlightText(formatMessage(msg.content), query)}</div>
                     <button onclick="viewConversation('${msg.conversationId}')" class="btn btn-sm">View Conversation</button>
                 </div>
             `).join('');
@@ -522,6 +522,33 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Format message with code blocks and inline code
+function formatMessage(text) {
+    // Escape HTML first
+    let formatted = escapeHtml(text);
+
+    // Replace code blocks (```language\ncode\n```)
+    formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
+        return `<pre><code>${code.trim()}</code></pre>`;
+    });
+
+    // Replace inline code (`code`)
+    formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Convert newlines to <br> for text outside of code blocks
+    // Split by <pre> tags to avoid affecting code blocks
+    const parts = formatted.split(/(<pre>[\s\S]*?<\/pre>)/);
+    formatted = parts.map((part, i) => {
+        if (i % 2 === 0) {
+            // Not a code block, convert newlines
+            return part.replace(/\n/g, '<br>');
+        }
+        return part;
+    }).join('');
+
+    return formatted;
 }
 
 // Profile button

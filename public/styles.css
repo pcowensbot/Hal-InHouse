@@ -1023,6 +1023,7 @@ body {
 .result-content {
     margin-bottom: 10px;
     color: var(--text-light);
+    white-space: pre-wrap;
 }
 
 .result-content mark {
@@ -1034,6 +1035,44 @@ body {
 [data-theme="dark"] .result-content mark {
     background: #854d0e;
     color: #fef3c7;
+}
+
+/* Code blocks in search results */
+.result-content pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 8px 0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre;
+}
+
+.result-content code {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 13px;
+}
+
+.result-content pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    color: inherit;
+}
+
+.result-content :not(pre) > code {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #e83e8c;
+}
+
+[data-theme="dark"] .result-content :not(pre) > code {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ff79c6;
 }
 
 /* Modal */
@@ -1119,6 +1158,44 @@ body {
 .msg-content {
     margin-bottom: 5px;
     white-space: pre-wrap;
+}
+
+/* Code blocks in conversation view */
+.msg-content pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 8px 0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre;
+}
+
+.msg-content code {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 13px;
+}
+
+.msg-content pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    color: inherit;
+}
+
+.msg-content :not(pre) > code {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #e83e8c;
+}
+
+[data-theme="dark"] .msg-content :not(pre) > code {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ff79c6;
 }
 
 .msg-time {
