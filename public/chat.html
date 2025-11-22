@@ -24,6 +24,10 @@
                     <span class="btn-icon">🎨</span>
                     <span class="btn-text">New Image</span>
                 </button>
+                <button id="importChatBtn" class="btn btn-secondary btn-sm">
+                    <span class="btn-icon">📥</span>
+                    <span class="btn-text">Import Chat</span>
+                </button>
             </div>
             <div id="conversationList" class="conversation-list">
                 <!-- Conversations will be loaded here -->
@@ -125,6 +129,54 @@
                 <div id="imageLoading" style="display: none; text-align: center; margin-top: 20px;">
                     <div class="loading-spinner"></div>
                     <p>Generating your image... This may take 15-20 seconds.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Chat Modal -->
+    <div id="importModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📥 Import Chat</h2>
+                <button onclick="closeImportModal()" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px; color: var(--text-light);">
+                    Import conversations from Claude.ai or ChatGPT using share links.
+                </p>
+
+                <form id="importForm">
+                    <div class="form-group">
+                        <label for="shareUrl">Share Link</label>
+                        <input
+                            type="url"
+                            id="shareUrl"
+                            placeholder="https://claude.ai/share/... or https://chatgpt.com/share/..."
+                            required
+                        />
+                        <small style="color: var(--text-light); margin-top: 5px; display: block;">
+                            Supported: Claude.ai and ChatGPT share links
+                        </small>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="importBtn">
+                        Import Conversation
+                    </button>
+                </form>
+
+                <div id="importSuccess" style="display: none; margin-top: 20px; padding: 15px; background: var(--success-bg, #d4edda); border-radius: 8px; color: var(--success-text, #155724);">
+                    <strong>✓ Success!</strong>
+                    <p id="importSuccessMessage" style="margin: 5px 0 0 0;"></p>
+                </div>
+
+                <div id="importError" style="display: none; margin-top: 20px; padding: 15px; background: var(--error-bg, #f8d7da); border-radius: 8px; color: var(--error-text, #721c24);">
+                    <strong>✗ Error</strong>
+                    <p id="importErrorMessage" style="margin: 5px 0 0 0;"></p>
+                </div>
+
+                <div id="importLoading" style="display: none; text-align: center; margin-top: 20px;">
+                    <div class="loading-spinner"></div>
+                    <p>Importing conversation... This may take a moment.</p>
                 </div>
             </div>
         </div>

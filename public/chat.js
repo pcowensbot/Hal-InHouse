@@ -681,5 +681,82 @@ async function renameConversation(id) {
     }
 }
 
+// ===== IMPORT CHAT FUNCTIONALITY =====
+
+// Open/close import modal
+function openImportModal() {
+    document.getElementById('importModal').style.display = 'flex';
+    document.getElementById('shareUrl').value = '';
+    document.getElementById('importSuccess').style.display = 'none';
+    document.getElementById('importError').style.display = 'none';
+    document.getElementById('importLoading').style.display = 'none';
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').style.display = 'none';
+}
+
+// Import button click handler
+document.getElementById('importChatBtn').addEventListener('click', openImportModal);
+
+// Import form submission
+document.getElementById('importForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const shareUrl = document.getElementById('shareUrl').value.trim();
+    if (!shareUrl) return;
+
+    // Validate URL format
+    if (!shareUrl.includes('claude.ai/share/') && !shareUrl.includes('chatgpt.com/share/')) {
+        document.getElementById('importError').style.display = 'block';
+        document.getElementById('importErrorMessage').textContent = 'Please enter a valid Claude.ai or ChatGPT share link.';
+        return;
+    }
+
+    // Show loading state
+    document.getElementById('importLoading').style.display = 'block';
+    document.getElementById('importSuccess').style.display = 'none';
+    document.getElementById('importError').style.display = 'none';
+    document.getElementById('importBtn').disabled = true;
+    document.getElementById('importBtn').textContent = 'Importing...';
+
+    try {
+        const response = await apiCall('/api/import/chat', {
+            method: 'POST',
+            body: JSON.stringify({ shareUrl }),
+        });
+
+        // Show success message
+        document.getElementById('importLoading').style.display = 'none';
+        document.getElementById('importSuccess').style.display = 'block';
+        document.getElementById('importSuccessMessage').textContent =
+            `Successfully imported "${response.conversation.title}" with ${response.conversation.messageCount} messages!`;
+
+        // Reload conversations to show the imported one
+        await loadConversations();
+
+        // Auto-close modal after 2 seconds
+        setTimeout(() => {
+            closeImportModal();
+        }, 2000);
+
+    } catch (error) {
+        console.error('Import failed:', error);
+        document.getElementById('importLoading').style.display = 'none';
+        document.getElementById('importError').style.display = 'block';
+        document.getElementById('importErrorMessage').textContent = error.message || 'Failed to import conversation. Please try again.';
+    } finally {
+        document.getElementById('importBtn').disabled = false;
+        document.getElementById('importBtn').textContent = 'Import Conversation';
+    }
+});
+
+// Close modal on background click
+document.getElementById('importModal').addEventListener('click', (e) => {
+    if (e.target.id === 'importModal') {
+        closeImportModal();
+    }
+});
+
 // Load conversations on start
 loadConversations();

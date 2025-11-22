@@ -31,6 +31,8 @@ HAL is a multi-agent AI system designed for families, featuring a web interface,
 - ✅ Live font preview in profile settings
 - ✅ User account deletion with archive functionality
 - ✅ Parent/admin user management with archive capability
+- ✅ Chat import from external platforms (Claude.ai and ChatGPT)
+- ✅ Headless browser scraping with bot detection bypass
 
 ### In Progress
 - 🔨 Knowledge Base UI implementation (backend complete, frontend pending)
@@ -49,10 +51,11 @@ HAL is a multi-agent AI system designed for families, featuring a web interface,
 
 ### Backend
 - **Runtime**: Node.js with Express
-- **Database**: SQLite with Prisma ORM
+- **Database**: PostgreSQL with Prisma ORM
 - **Real-time**: WebSocket via Socket.io
 - **AI**: OpenAI API integration
 - **Process Management**: PM2 with ecosystem.config.js
+- **Web Scraping**: Puppeteer with stealth plugin for chat imports
 
 ### Frontend
 - **Framework**: Static HTML/CSS/JS (no framework - vanilla JS)
@@ -132,6 +135,33 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - Socket.io for real-time updates
 
 ## 📝 Recent Sessions
+
+### Session 8 (2025-11-22 Evening) - Chat Import Feature
+- Implemented chat import from Claude.ai and ChatGPT share links
+- Installed Puppeteer with stealth plugin to bypass Cloudflare bot detection
+- Created `/server/src/services/chatImporter.js` for headless browser scraping
+- Added `/api/import/chat` endpoint for processing imports
+- Built import UI with modal and "Import Chat" button in sidebar
+- Fixed disk usage BigInt serialization error in admin dashboard
+- Successfully tested both Claude and ChatGPT imports
+
+**Major Features**:
+- Headless browser with stealth mode bypasses bot detection
+- Intelligent message grouping for multi-part Claude responses
+- Supports both Claude.ai and ChatGPT share link formats
+- Auto-refreshes conversation list after import
+- Loading states and error handling in UI
+
+**Files Modified**:
+- `server/package.json` - Added puppeteer-extra and stealth plugin
+- `server/src/services/chatImporter.js` - New scraping service
+- `server/src/routes/import.js` - New import API endpoint
+- `server/src/index.js` - Registered import routes
+- `public/chat.html` - Added import button and modal
+- `public/chat.js` - Import form handling and API integration
+- `server/src/routes/admin.js` - Fixed BigInt serialization bug
+
+**Commits**: (Pending)
 
 ### Session 7 (2025-11-22) - UI Improvements & User Management
 - Fixed mobile sidebar scroll causing page refresh

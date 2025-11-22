@@ -225,7 +225,7 @@ router.get('/disk-usage', async (req, res) => {
     // Get database size
     const dbSize = await prisma.$queryRaw`
       SELECT pg_database_size(current_database()) as size
-    `.then(result => result[0]?.size || 0);
+    `.then(result => Number(result[0]?.size || 0));
 
     // Calculate trash size (pending deletions in DB don't take much space, but count messages)
     const pendingDeletions = await prisma.conversation.count({
