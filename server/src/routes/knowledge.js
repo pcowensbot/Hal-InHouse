@@ -262,4 +262,287 @@ router.get('/notes/check/:messageId', async (req, res) => {
   }
 });
 
+// ========== Training Markers ==========
+
+// Toggle training mark for a note
+router.post('/notes/:id/toggle-training', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { id } = req.params;
+
+    // Verify ownership
+    const note = await prisma.starredNote.findUnique({ where: { id } });
+    if (!note || note.userId !== userId) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    const updated = await prisma.starredNote.update({
+      where: { id },
+      data: { markedForTraining: !note.markedForTraining },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Toggle training mark error:', error);
+    res.status(500).json({ error: 'Failed to toggle training mark' });
+  }
+});
+
+// Toggle training mark for a book (marks all notes in book)
+router.post('/books/:id/toggle-training', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { id } = req.params;
+
+    // Verify ownership
+    const book = await prisma.book.findUnique({ where: { id } });
+    if (!book || book.userId !== userId) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    const updated = await prisma.book.update({
+      where: { id },
+      data: { markedForTraining: !book.markedForTraining },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Toggle book training mark error:', error);
+    res.status(500).json({ error: 'Failed to toggle training mark' });
+  }
+});
+
+// Get training data count
+router.get('/training/count', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const markedNotes = await prisma.starredNote.count({
+      where: { userId, markedForTraining: true },
+    });
+
+    const markedBooks = await prisma.book.count({
+      where: { userId, markedForTraining: true },
+    });
+
+    // Count notes in marked books
+    const notesInMarkedBooks = await prisma.starredNote.count({
+      where: {
+        userId,
+        book: {
+          markedForTraining: true,
+        },
+      },
+    });
+
+    const totalSamples = markedNotes + notesInMarkedBooks;
+
+    res.json({
+      markedNotes,
+      markedBooks,
+      notesInMarkedBooks,
+      totalSamples,
+    });
+  } catch (error) {
+    console.error('Get training count error:', error);
+    res.status(500).json({ error: 'Failed to get training count' });
+  }
+});
+
+// ========== Search / RAG ==========
+
+// Search knowledge base
+router.get('/search', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { q, bookId } = req.query;
+
+    if (!q) {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+
+    const where = { userId };
+    if (bookId) {
+      where.bookId = bookId;
+    }
+
+    // Simple text search for now (can be upgraded to semantic search later)
+    const notes = await prisma.starredNote.findMany({
+      where: {
+        ...where,
+        OR: [
+          { title: { contains: q, mode: 'insensitive' } },
+          { note: { contains: q, mode: 'insensitive' } },
+          {
+            message: {
+              content: { contains: q, mode: 'insensitive' },
+            },
+          },
+        ],
+      },
+      include: {
+        message: {
+          include: {
+            conversation: {
+              select: { title: true },
+            },
+          },
+        },
+        book: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    res.json(notes);
+  } catch (error) {
+    console.error('Search knowledge base error:', error);
+    res.status(500).json({ error: 'Failed to search knowledge base' });
+  }
+});
+
+// ========== Export / Import ==========
+
+// Export a book
+router.get('/books/:id/export', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { id } = req.params;
+
+    // Verify ownership
+    const book = await prisma.book.findUnique({
+      where: { id },
+      include: {
+        notes: {
+          include: {
+            message: {
+              select: {
+                content: true,
+                role: true,
+                createdAt: true,
+              },
+            },
+          },
+        },
+        user: {
+          select: {
+            firstName: true,
+          },
+        },
+      },
+    });
+
+    if (!book || book.userId !== userId) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    // Format for export
+    const exportData = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      exportedBy: book.user.firstName,
+      book: {
+        name: book.name,
+        description: book.description,
+        createdAt: book.createdAt,
+        noteCount: book.notes.length,
+      },
+      notes: book.notes.map(note => ({
+        title: note.title,
+        note: note.note,
+        message: {
+          role: note.message.role,
+          content: note.message.content,
+          createdAt: note.message.createdAt,
+        },
+        createdAt: note.createdAt,
+      })),
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="hal-book-${book.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.json"`);
+    res.json(exportData);
+  } catch (error) {
+    console.error('Export book error:', error);
+    res.status(500).json({ error: 'Failed to export book' });
+  }
+});
+
+// Import a book
+router.post('/books/import', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const importData = req.body;
+
+    // Validate import data
+    if (!importData.version || !importData.book || !importData.notes) {
+      return res.status(400).json({ error: 'Invalid import file format' });
+    }
+
+    // Create the book
+    const book = await prisma.book.create({
+      data: {
+        userId,
+        name: `${importData.book.name} (Imported)`,
+        description: importData.book.description || `Imported from ${importData.exportedBy} on ${new Date(importData.exportedAt).toLocaleDateString()}`,
+      },
+    });
+
+    // For each note, we need to create a conversation and message first
+    // Since we're importing standalone knowledge, create a special "Imported Knowledge" conversation
+    let importConversation = await prisma.conversation.findFirst({
+      where: {
+        userId,
+        title: '📚 Imported Knowledge',
+      },
+    });
+
+    if (!importConversation) {
+      importConversation = await prisma.conversation.create({
+        data: {
+          userId,
+          title: '📚 Imported Knowledge',
+        },
+      });
+    }
+
+    // Import notes
+    for (const noteData of importData.notes) {
+      // Create message in imported conversation
+      const message = await prisma.message.create({
+        data: {
+          conversationId: importConversation.id,
+          role: noteData.message.role,
+          content: noteData.message.content,
+        },
+      });
+
+      // Create starred note
+      await prisma.starredNote.create({
+        data: {
+          userId,
+          messageId: message.id,
+          bookId: book.id,
+          title: noteData.title,
+          note: noteData.note,
+        },
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      book,
+      imported: importData.notes.length,
+    });
+  } catch (error) {
+    console.error('Import book error:', error);
+    res.status(500).json({ error: 'Failed to import book' });
+  }
+});
+
 export default router;

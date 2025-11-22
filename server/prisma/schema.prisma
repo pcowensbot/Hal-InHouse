@@ -21,6 +21,7 @@ model User {
   books         Book[]
   starredNotes  StarredNote[]
   devices       Device[]
+  trainingJobs  TrainingJob[]
 
   @@map("users")
 }
@@ -93,35 +94,40 @@ model InviteCode {
 }
 
 model Book {
-  id          String         @id @default(uuid())
-  userId      String
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  notes       StarredNote[]
+  id                String         @id @default(uuid())
+  userId            String
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  description       String?
+  markedForTraining Boolean        @default(false) // Mark entire book for fine-tuning
+  isPublic          Boolean        @default(false) // Allow export/sharing
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  notes             StarredNote[]
 
   @@index([userId])
+  @@index([markedForTraining])
   @@map("books")
 }
 
 model StarredNote {
-  id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messageId   String
-  message     Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  title       String?   // User's custom title/caption
-  note        String?   @db.Text // User's notes about this starred item
-  bookId      String?
-  book        Book?     @relation(fields: [bookId], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                String    @id @default(uuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId         String
+  message           Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  title             String?   // User's custom title/caption
+  note              String?   @db.Text // User's notes about this starred item
+  bookId            String?
+  book              Book?     @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  markedForTraining Boolean   @default(false) // Mark for fine-tuning
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([userId])
   @@index([messageId])
   @@index([bookId])
+  @@index([markedForTraining])
   @@map("starred_notes")
 }
 
@@ -140,4 +146,38 @@ model Device {
   @@index([userId])
   @@index([apiKeyHash])
   @@map("devices")
+}
+
+model TrainingJob {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String    // User-friendly name for this training run
+  baseModel       String    // Model to fine-tune from (e.g., "llama3.1:8b")
+  status          TrainingStatus @default(QUEUED)
+  trainingMethod  String    @default("lora") // "lora", "qlora", "full"
+  datasetSize     Int       @default(0) // Number of training samples
+  progress        Float     @default(0) // 0-100 percentage
+  currentEpoch    Int?
+  totalEpochs     Int       @default(3)
+  loss            Float?    // Current training loss
+  outputModel     String?   // Name of the resulting model
+  errorMessage    String?   @db.Text
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("training_jobs")
+}
+
+enum TrainingStatus {
+  QUEUED
+  PREPARING
+  TRAINING
+  COMPLETED
+  FAILED
+  CANCELLED
 }
