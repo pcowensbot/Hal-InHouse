@@ -481,12 +481,11 @@ function adjustColorBrightness(color, percent) {
 // Load sidebar avatar
 function loadSidebarAvatar() {
     const sidebarAvatar = document.getElementById('sidebarAvatar');
-    const savedAvatar = localStorage.getItem('hal_avatar');
     const customization = JSON.parse(localStorage.getItem('hal_customization') || '{}');
 
     // Set avatar content
-    if (savedAvatar) {
-        sidebarAvatar.innerHTML = `<img src="${savedAvatar}" alt="Avatar">`;
+    if (user.avatar) {
+        sidebarAvatar.innerHTML = `<img src="${user.avatar}" alt="Avatar">`;
     } else {
         sidebarAvatar.textContent = user.firstName.charAt(0).toUpperCase();
     }

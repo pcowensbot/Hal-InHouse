@@ -537,13 +537,27 @@ function toggleTheme() {
 }
 
 function loadSidebarAvatar() {
-    const avatar = localStorage.getItem('hal_avatar');
     const avatarDiv = document.getElementById('sidebarAvatar');
+    const customization = JSON.parse(localStorage.getItem('hal_customization') || '{}');
 
-    if (avatar) {
-        avatarDiv.innerHTML = `<img src="${avatar}" alt="${user.firstName}">`;
+    // Set avatar content
+    if (user.avatar) {
+        avatarDiv.innerHTML = `<img src="${user.avatar}" alt="${user.firstName}">`;
     } else {
         avatarDiv.textContent = user.firstName.charAt(0).toUpperCase();
+    }
+
+    // Apply border customization
+    if (customization.avatarBorderStyle && customization.avatarBorderStyle !== 'none' && customization.avatarBorderWidth > 0) {
+        if (customization.avatarBorderStyle === 'gradient') {
+            avatarDiv.style.background = 'linear-gradient(45deg, #f093fb 0%, #f5576c 100%)';
+            avatarDiv.style.padding = `${customization.avatarBorderWidth}px`;
+            avatarDiv.style.border = '';
+        } else {
+            avatarDiv.style.border = `${customization.avatarBorderWidth}px ${customization.avatarBorderStyle} ${customization.avatarBorderColor || '#2563eb'}`;
+            avatarDiv.style.background = '';
+            avatarDiv.style.padding = '';
+        }
     }
 }
 
