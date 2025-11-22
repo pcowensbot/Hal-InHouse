@@ -39,6 +39,17 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Code and terminal elements always use monospace font */
+code,
+pre,
+kbd,
+samp,
+tt,
+.code,
+.terminal {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace !important;
+}
+
 /* Container & Card */
 .container {
     min-height: 100vh;
@@ -1749,7 +1760,7 @@ body.sidebar-open {
 }
 
 /* Font Family Import */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Source+Sans+Pro:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Source+Sans+Pro:wght@400;600;700&family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@400;500;600;700&family=Nunito:wght@400;600;700&family=Quicksand:wght@400;500;600;700&family=Comic+Neue:wght@400;700&family=Fredoka:wght@400;500;600;700&family=Bubblegum+Sans&family=Chewy&display=swap');
 
 /* Custom Avatar Border Classes */
 .avatar-preview {
