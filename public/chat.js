@@ -13,6 +13,42 @@ function initTheme() {
     updateThemeIcon(savedTheme);
 }
 
+// Load and apply customization
+function loadCustomization() {
+    const saved = localStorage.getItem('hal_customization');
+    if (saved) {
+        const customization = JSON.parse(saved);
+
+        // Font family
+        if (customization.fontFamily && customization.fontFamily !== 'system') {
+            document.body.style.fontFamily = customization.fontFamily;
+        }
+
+        // Font size
+        const fontSizeScales = [0.9, 1.0, 1.1];
+        if (customization.fontSize !== undefined) {
+            document.documentElement.style.fontSize = `${fontSizeScales[customization.fontSize] * 16}px`;
+        }
+
+        // Accent color
+        if (customization.accentColor) {
+            document.documentElement.style.setProperty('--primary', customization.accentColor);
+            const darkerColor = adjustColorBrightness(customization.accentColor, -20);
+            document.documentElement.style.setProperty('--primary-dark', darkerColor);
+        }
+    }
+}
+
+// Helper function to adjust color brightness
+function adjustColorBrightness(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+    const G = Math.max(0, Math.min(255, (num >> 8 & 0x00FF) + amt));
+    const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+    return '#' + (0x1000000 + (R << 16) + (G << 8) + B).toString(16).slice(1);
+}
+
 function updateThemeIcon(theme) {
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
@@ -28,24 +64,73 @@ function toggleTheme() {
     updateThemeIcon(newTheme);
 }
 
+// Mobile detection
+function isMobile() {
+    return window.innerWidth <= 480;
+}
+
 // Sidebar toggle
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
+    const backdrop = document.getElementById('mobileBackdrop');
 
-    sidebar.classList.toggle('collapsed');
-    overlay.classList.toggle('collapsed');
+    if (isMobile()) {
+        // On mobile, toggle between hidden and visible
+        const isOpen = !sidebar.classList.contains('collapsed');
+
+        if (isOpen) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    } else {
+        // On desktop, just toggle collapsed state
+        sidebar.classList.toggle('collapsed');
+    }
 }
 
-// Close sidebar on mobile when clicking overlay
-function closeSidebarOnMobile() {
+function openSidebar() {
     const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
+    const backdrop = document.getElementById('mobileBackdrop');
 
-    if (window.innerWidth <= 768) {
-        sidebar.classList.add('collapsed');
-        overlay.classList.add('collapsed');
+    sidebar.classList.remove('collapsed');
+
+    if (isMobile()) {
+        backdrop.classList.add('active');
+        document.body.classList.add('sidebar-open');
     }
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('mobileBackdrop');
+
+    sidebar.classList.add('collapsed');
+    backdrop.classList.remove('active');
+    document.body.classList.remove('sidebar-open');
+}
+
+// Auto-collapse sidebar on mobile on page load
+function initMobileSidebar() {
+    if (isMobile()) {
+        closeSidebar();
+    }
+
+    // Handle window resize
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (isMobile()) {
+                closeSidebar();
+            } else {
+                // On desktop, remove mobile-specific classes
+                const backdrop = document.getElementById('mobileBackdrop');
+                backdrop.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
+            }
+        }, 250);
+    });
 }
 
 // Auto-resize textarea
@@ -94,6 +179,12 @@ if (user.role === 'PARENT') {
 // Initialize theme
 initTheme();
 
+// Load customization
+loadCustomization();
+
+// Initialize mobile sidebar behavior
+initMobileSidebar();
+
 // Load conversations
 async function loadConversations() {
     try {
@@ -101,40 +192,6 @@ async function loadConversations() {
         renderConversations();
     } catch (error) {
         console.error('Failed to load conversations:', error);
-    }
-}
-
-// Load knowledge base stats for sidebar
-async function loadKnowledgeStats() {
-    try {
-        const [notes, books] = await Promise.all([
-            apiCall('/api/knowledge/notes'),
-            apiCall('/api/knowledge/books'),
-        ]);
-
-        const inboxCount = notes.filter(note => !note.bookId).length;
-
-        document.getElementById('inboxNotesCount').textContent = inboxCount;
-        document.getElementById('userBooksCount').textContent = books.length;
-    } catch (error) {
-        console.error('Failed to load knowledge stats:', error);
-    }
-}
-
-// Toggle knowledge base section
-function toggleKnowledgeSection() {
-    const section = document.getElementById('knowledgeSection');
-    const header = document.querySelector('.section-header');
-    const toggle = document.getElementById('knowledgeToggle');
-
-    if (section.classList.contains('collapsed')) {
-        section.classList.remove('collapsed');
-        header.classList.remove('collapsed');
-        toggle.textContent = '▼';
-    } else {
-        section.classList.add('collapsed');
-        header.classList.add('collapsed');
-        toggle.textContent = '▶';
     }
 }
 
@@ -327,47 +384,14 @@ document.getElementById('messageForm').addEventListener('submit', async (e) => {
     messagesDiv.appendChild(userMessageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    // Show loading indicator with rotating messages
-    const loadingMessages = [
-        'Thinking...',
-        'Pondering...',
-        'Computing...',
-        'Squaring the root...',
-        'Carrying the 4...',
-        'Consulting the quantum realm...',
-        'Waking up the neurons...',
-        'Reading between the lines...',
-        'Connecting the dots...',
-        'Brewing some wisdom...',
-        'Crunching the numbers...',
-        'Parsing your inquiry...',
-        'That\'s an interesting question...',
-        'Hmm, let me think about that...',
-        'Processing at the speed of light...',
-        'Dusting off the knowledge banks...',
-        'Summoning the answer...',
-        'Calculating probabilities...',
-        'Diving into the data...',
-        'Searching my circuits...',
-    ];
-
+    // Show loading indicator
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'message assistant loading';
     loadingDiv.innerHTML = `
-        <div class="message-content">${loadingMessages[0]}</div>
+        <div class="message-content">Thinking...</div>
     `;
     messagesDiv.appendChild(loadingDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-    // Rotate through loading messages
-    let messageIndex = 0;
-    const loadingInterval = setInterval(() => {
-        messageIndex = (messageIndex + 1) % loadingMessages.length;
-        const contentDiv = loadingDiv.querySelector('.message-content');
-        if (contentDiv) {
-            contentDiv.textContent = loadingMessages[messageIndex];
-        }
-    }, 1500); // Change message every 1.5 seconds
 
     try {
         const response = await apiCall(`/api/chat/conversations/${currentConversationId}/messages`, {
@@ -375,8 +399,7 @@ document.getElementById('messageForm').addEventListener('submit', async (e) => {
             body: JSON.stringify({ content }),
         });
 
-        // Remove loading indicator and stop rotation
-        clearInterval(loadingInterval);
+        // Remove loading indicator
         loadingDiv.remove();
 
         // Add assistant message
@@ -396,7 +419,6 @@ document.getElementById('messageForm').addEventListener('submit', async (e) => {
         // Reload conversations to update sidebar
         await loadConversations();
     } catch (error) {
-        clearInterval(loadingInterval);
         loadingDiv.remove();
         console.error('Failed to send message:', error);
         alert('Failed to send message: ' + error.message);
@@ -419,16 +441,6 @@ document.getElementById('messageInput').addEventListener('keydown', (e) => {
 // Profile button
 document.getElementById('profileBtn').addEventListener('click', () => {
     window.location.href = '/profile.html';
-});
-
-// Knowledge Base button
-document.getElementById('knowledgeBtn').addEventListener('click', () => {
-    window.location.href = '/knowledge.html';
-});
-
-// Organize Notes button (in sidebar)
-document.getElementById('openKnowledgeBtn').addEventListener('click', () => {
-    window.location.href = '/knowledge.html';
 });
 
 // Dashboard button (for parents)
@@ -554,9 +566,6 @@ async function starMessage(messageId) {
         });
 
         alert('✅ Saved to Knowledge Base!');
-
-        // Refresh knowledge stats in sidebar
-        loadKnowledgeStats();
     } catch (error) {
         console.error('Failed to star message:', error);
         alert('Failed to save: ' + error.message);
@@ -589,6 +598,5 @@ async function renameConversation(id) {
     }
 }
 
-// Load conversations and knowledge stats on start
+// Load conversations on start
 loadConversations();
-loadKnowledgeStats();
