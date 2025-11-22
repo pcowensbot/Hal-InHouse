@@ -1,55 +1,13 @@
-// Check authentication
-const token = localStorage.getItem('hal_token');
-const user = JSON.parse(localStorage.getItem('hal_user'));
-
-if (!token || !user) {
-    window.location.href = '/';
-}
-
-// Initialize theme
-function initTheme() {
-    const savedTheme = localStorage.getItem('hal_theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    updateThemeIcon(savedTheme);
-}
-
-function updateThemeIcon(theme) {
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-        themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
-    }
-}
-
-function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('hal_theme', newTheme);
-    updateThemeIcon(newTheme);
-}
-
-// Sidebar toggle
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-
-    sidebar.classList.toggle('collapsed');
-    overlay.classList.toggle('collapsed');
-}
-
-// Close sidebar on mobile when clicking overlay
-function closeSidebarOnMobile() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-
-    if (window.innerWidth <= 768) {
-        sidebar.classList.add('collapsed');
-        overlay.classList.add('collapsed');
-    }
-}
+// Knowledge Base Management
 
 // API helper
 async function apiCall(endpoint, options = {}) {
+    const token = localStorage.getItem('hal_token');
+    if (!token) {
+        window.location.href = '/';
+        return;
+    }
+
     const response = await fetch(endpoint, {
         ...options,
         headers: {
@@ -59,511 +17,601 @@ async function apiCall(endpoint, options = {}) {
         },
     });
 
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
         localStorage.removeItem('hal_token');
-        localStorage.removeItem('hal_user');
         window.location.href = '/';
         return;
     }
 
-    const data = await response.json();
     if (!response.ok) {
-        throw new Error(data.error || 'Request failed');
+        const error = await response.json();
+        throw new Error(error.error || 'Request failed');
     }
-    return data;
+
+    return response.json();
 }
 
-// State
-let books = [];
-let allNotes = [];
-let currentView = 'inbox';
-let currentBookId = null;
+// Check authentication
+const token = localStorage.getItem('hal_token');
+if (!token) {
+    window.location.href = '/';
+}
 
-// Initialize
+// Get user info
+const user = JSON.parse(localStorage.getItem('hal_user'));
 document.getElementById('userName').textContent = user.firstName;
 
-// Show dashboard button for parents
-if (user.role === 'PARENT') {
-    document.getElementById('dashboardBtn').style.display = 'block';
-}
+// State
+let currentBookId = null;
+let allBooks = [];
+let allNotes = [];
+let importData = null;
 
-// Initialize theme
+// Initialize
+loadBooks();
+loadNotes();
+loadTrainingCount();
 initTheme();
+loadSidebarAvatar();
+initMobileSidebar();
+setupAutoCollapse();
 
-// Load data
+// ========== Books Management ==========
+
 async function loadBooks() {
     try {
-        books = await apiCall('/api/knowledge/books');
-        renderBooksList();
+        allBooks = await apiCall('/api/knowledge/books');
+        renderBooks();
+        populateBookFilters();
     } catch (error) {
         console.error('Failed to load books:', error);
     }
 }
 
-async function loadNotes(bookId = null) {
-    try {
-        const endpoint = bookId
-            ? `/api/knowledge/notes?bookId=${bookId}`
-            : '/api/knowledge/notes';
-        allNotes = await apiCall(endpoint);
+function renderBooks() {
+    const booksDiv = document.getElementById('booksList');
 
-        if (currentView === 'inbox') {
-            renderInbox();
-        } else if (currentView === 'bookDetail' && currentBookId) {
-            renderBookDetail(currentBookId);
-        }
-    } catch (error) {
-        console.error('Failed to load notes:', error);
-    }
-}
-
-// Render functions
-function renderInbox() {
-    const inboxNotes = allNotes.filter(note => !note.bookId);
-    const container = document.getElementById('inboxNotes');
-    const countBadge = document.getElementById('inboxCount');
-
-    countBadge.textContent = inboxNotes.length;
-
-    if (inboxNotes.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">📥</div>
-                <h3>Inbox is empty</h3>
-                <p>Star messages in your chats to save them here!</p>
-            </div>
-        `;
+    if (allBooks.length === 0) {
+        booksDiv.innerHTML = '<p class="placeholder-sm">No books yet. Create one!</p>';
         return;
     }
 
-    container.innerHTML = inboxNotes.map(note => createNoteCard(note)).join('');
-}
-
-function renderBooksList() {
-    const container = document.getElementById('booksList');
-
-    if (books.length === 0) {
-        container.innerHTML = '<div class="empty-state">No books yet</div>';
-        return;
-    }
-
-    container.innerHTML = books.map(book => `
-        <div class="conversation-item" onclick="showBookDetail('${book.id}')">
-            <div class="conversation-title">📚 ${escapeHtml(book.name)}</div>
-            <div class="conversation-preview">${book._count.notes} notes</div>
-        </div>
-    `).join('');
-}
-
-function renderBooksGrid() {
-    const container = document.getElementById('booksGrid');
-
-    if (books.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">📚</div>
-                <h3>No books yet</h3>
-                <p>Create your first book to organize your knowledge!</p>
+    booksDiv.innerHTML = allBooks.map(book => `
+        <div class="book-item ${currentBookId === book.id ? 'active' : ''} ${book.markedForTraining ? 'marked-for-training' : ''}"
+             onclick="selectBook('${book.id}')">
+            <div class="book-info">
+                <div class="book-name">${escapeHtml(book.name)}</div>
+                <div class="book-count">${book._count.notes} notes</div>
             </div>
-        `;
-        return;
-    }
-
-    container.innerHTML = books.map(book => `
-        <div class="book-card" onclick="showBookDetail('${book.id}')">
-            <div class="book-card-icon">📚</div>
-            <div class="book-card-title">${escapeHtml(book.name)}</div>
-            <div class="book-card-description">
-                ${book.description ? escapeHtml(book.description) : 'No description'}
-            </div>
-            <div class="book-card-footer">
-                <span class="book-card-notes-count">${book._count.notes} notes</span>
-                <span class="book-card-date">${formatDate(book.updatedAt)}</span>
+            <div class="book-actions" onclick="event.stopPropagation()">
+                <button onclick="toggleBookTraining('${book.id}')"
+                        class="btn-icon-only ${book.markedForTraining ? 'active' : ''}"
+                        title="${book.markedForTraining ? 'Remove from training' : 'Mark for AI training'}">
+                    🧠
+                </button>
+                <button onclick="exportBook('${book.id}')" class="btn-icon-only" title="Export book">📤</button>
+                <button onclick="deleteBook('${book.id}')" class="btn-icon-only" title="Delete book">🗑️</button>
             </div>
         </div>
     `).join('');
 }
 
-function renderBookDetail(bookId) {
-    const book = books.find(b => b.id === bookId);
-    if (!book) return;
+function populateBookFilters() {
+    const filterSelect = document.getElementById('bookFilter');
+    const editBookSelect = document.getElementById('editNoteBook');
 
-    document.getElementById('bookDetailTitle').textContent = book.name;
-    document.getElementById('bookDetailDescription').textContent =
-        book.description || 'No description';
+    const bookOptions = allBooks.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
 
-    const bookNotes = allNotes.filter(note => note.bookId === bookId);
-    const container = document.getElementById('bookNotes');
+    filterSelect.innerHTML = '<option value="">All Books</option>' + bookOptions;
+    editBookSelect.innerHTML = '<option value="">No Book (Loose Note)</option>' + bookOptions;
+}
 
-    if (bookNotes.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">📝</div>
-                <h3>No notes in this book</h3>
-                <p>Move notes from your inbox to organize them here!</p>
-            </div>
-        `;
-        return;
+function selectBook(bookId) {
+    if (currentBookId === bookId) {
+        currentBookId = null;
+    } else {
+        currentBookId = bookId;
     }
-
-    container.innerHTML = bookNotes.map(note => createNoteCard(note)).join('');
+    renderBooks();
+    filterNotes();
 }
 
-function createNoteCard(note) {
-    const hasCustomNote = note.note && note.note.trim();
-    const displayContent = hasCustomNote ? note.note : note.message.content;
-    const truncatedContent = displayContent.length > 200
-        ? displayContent.substring(0, 200) + '...'
-        : displayContent;
-
-    return `
-        <div class="note-card" onclick="showNoteModal('${note.id}')">
-            <div class="note-card-header">
-                <div class="note-card-title">
-                    ${note.title ? escapeHtml(note.title) : 'Untitled Note'}
-                </div>
-            </div>
-            <div class="note-card-content">
-                ${escapeHtml(truncatedContent)}
-            </div>
-            <div class="note-card-meta">
-                <span class="note-card-source">
-                    From: ${escapeHtml(note.message.conversation.title)}
-                </span>
-                <span class="note-card-date">${formatDate(note.createdAt)}</span>
-            </div>
-        </div>
-    `;
-}
-
-// View management
-function showView(viewName) {
-    currentView = viewName;
-
-    // Update nav buttons
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.view === viewName) {
-            btn.classList.add('active');
-        }
-    });
-
-    // Hide all views
-    document.getElementById('inboxView').style.display = 'none';
-    document.getElementById('booksView').style.display = 'none';
-    document.getElementById('bookDetailView').style.display = 'none';
-    document.getElementById('booksList').style.display = 'none';
-
-    // Show selected view
-    if (viewName === 'inbox') {
-        document.getElementById('viewTitle').textContent = '📥 Inbox';
-        document.getElementById('inboxView').style.display = 'block';
-        loadNotes();
-    } else if (viewName === 'books') {
-        document.getElementById('viewTitle').textContent = '📚 All Books';
-        document.getElementById('booksView').style.display = 'block';
-        document.getElementById('booksList').style.display = 'block';
-        renderBooksGrid();
-    }
-}
-
-function showBookDetail(bookId) {
-    currentView = 'bookDetail';
-    currentBookId = bookId;
-
-    const book = books.find(b => b.id === bookId);
-    if (!book) return;
-
-    document.getElementById('viewTitle').textContent = `📚 ${book.name}`;
-    document.getElementById('inboxView').style.display = 'none';
-    document.getElementById('booksView').style.display = 'none';
-    document.getElementById('bookDetailView').style.display = 'block';
-
-    loadNotes(bookId);
-    renderBookDetail(bookId);
-}
-
-// Book management
-function openNewBookModal() {
-    document.getElementById('newBookModal').style.display = 'flex';
+function showCreateBookModal() {
+    document.getElementById('createBookModal').style.display = 'flex';
     document.getElementById('bookName').value = '';
     document.getElementById('bookDescription').value = '';
+    document.getElementById('createBookError').textContent = '';
 }
 
-function closeNewBookModal() {
-    document.getElementById('newBookModal').style.display = 'none';
+function closeCreateBookModal() {
+    document.getElementById('createBookModal').style.display = 'none';
 }
 
-async function createBook(name, description) {
+document.getElementById('createBookForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('bookName').value.trim();
+    const description = document.getElementById('bookDescription').value.trim();
+    const errorDiv = document.getElementById('createBookError');
+
     try {
         await apiCall('/api/knowledge/books', {
             method: 'POST',
             body: JSON.stringify({ name, description }),
         });
 
+        closeCreateBookModal();
         await loadBooks();
-        closeNewBookModal();
+        alert('✅ Book created!');
     } catch (error) {
-        alert('Failed to create book: ' + error.message);
+        console.error('Failed to create book:', error);
+        errorDiv.textContent = error.message || 'Failed to create book';
     }
-}
+});
 
-function openEditBookModal() {
-    const book = books.find(b => b.id === currentBookId);
-    if (!book) return;
-
-    document.getElementById('editBookId').value = book.id;
-    document.getElementById('editBookName').value = book.name;
-    document.getElementById('editBookDescription').value = book.description || '';
-    document.getElementById('editBookModal').style.display = 'flex';
-}
-
-function closeEditBookModal() {
-    document.getElementById('editBookModal').style.display = 'none';
-}
-
-async function updateBook(id, name, description) {
-    try {
-        await apiCall(`/api/knowledge/books/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify({ name, description }),
-        });
-
-        await loadBooks();
-        closeEditBookModal();
-
-        // Refresh current view
-        if (currentView === 'bookDetail') {
-            showBookDetail(currentBookId);
-        }
-    } catch (error) {
-        alert('Failed to update book: ' + error.message);
+async function deleteBook(bookId) {
+    const book = allBooks.find(b => b.id === bookId);
+    if (!confirm(`Delete book "${book.name}"? This will also delete all notes in it.`)) {
+        return;
     }
-}
-
-async function deleteBook() {
-    if (!currentBookId) return;
-
-    const book = books.find(b => b.id === currentBookId);
-    const confirmMsg = book._count.notes > 0
-        ? `Delete "${book.name}"? All ${book._count.notes} notes will be moved to your inbox.`
-        : `Delete "${book.name}"?`;
-
-    if (!confirm(confirmMsg)) return;
 
     try {
-        await apiCall(`/api/knowledge/books/${currentBookId}`, {
+        await apiCall(`/api/knowledge/books/${bookId}`, {
             method: 'DELETE',
         });
 
         await loadBooks();
-        await loadNotes();
-        showView('books');
+        if (currentBookId === bookId) {
+            currentBookId = null;
+            loadNotes();
+        }
     } catch (error) {
+        console.error('Failed to delete book:', error);
         alert('Failed to delete book: ' + error.message);
     }
 }
 
-// Note management
-function showNoteModal(noteId) {
+// ========== Notes Management ==========
+
+async function loadNotes() {
+    try {
+        const bookId = currentBookId || document.getElementById('bookFilter').value;
+        const url = bookId ? `/api/knowledge/notes?bookId=${bookId}` : '/api/knowledge/notes';
+        allNotes = await apiCall(url);
+        renderNotes();
+
+        if (allNotes.length === 0) {
+            document.getElementById('welcomeMessage').style.display = 'block';
+            document.getElementById('notesList').style.display = 'none';
+        } else {
+            document.getElementById('welcomeMessage').style.display = 'none';
+            document.getElementById('notesList').style.display = 'grid';
+        }
+    } catch (error) {
+        console.error('Failed to load notes:', error);
+    }
+}
+
+function renderNotes() {
+    const notesDiv = document.getElementById('notesList');
+
+    if (allNotes.length === 0) {
+        notesDiv.innerHTML = '';
+        return;
+    }
+
+    notesDiv.innerHTML = allNotes.map(note => `
+        <div class="note-card ${note.markedForTraining ? 'marked-for-training' : ''}">
+            <div class="note-header">
+                <div class="note-title">${note.title ? escapeHtml(note.title) : 'Untitled'}</div>
+                <div class="note-actions">
+                    <button onclick="toggleNoteTraining('${note.id}')"
+                            class="btn-icon-only ${note.markedForTraining ? 'active' : ''}"
+                            title="${note.markedForTraining ? 'Remove from training' : 'Mark for AI training'}">
+                        🧠
+                    </button>
+                    <button onclick="editNote('${note.id}')" class="btn-icon-only" title="Edit note">✏️</button>
+                    <button onclick="deleteNote('${note.id}')" class="btn-icon-only" title="Delete note">🗑️</button>
+                </div>
+            </div>
+            ${note.note ? `<div class="note-content">${escapeHtml(note.note)}</div>` : ''}
+            <div class="note-message">
+                <div class="message-role">${note.message.role === 'user' ? 'You' : 'HAL'}:</div>
+                <div class="message-text">${formatMessage(note.message.content)}</div>
+            </div>
+            <div class="note-footer">
+                <span class="note-book">${note.book ? '📚 ' + escapeHtml(note.book.name) : '📄 Loose note'}</span>
+                <span class="note-date">${new Date(note.createdAt).toLocaleDateString()}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function filterNotes() {
+    const selectedBookId = document.getElementById('bookFilter').value;
+    if (selectedBookId !== currentBookId) {
+        currentBookId = selectedBookId || null;
+        renderBooks();
+    }
+    loadNotes();
+}
+
+function editNote(noteId) {
     const note = allNotes.find(n => n.id === noteId);
     if (!note) return;
 
-    const modal = document.getElementById('noteModal');
-    const detailContainer = document.getElementById('noteDetail');
-
-    detailContainer.innerHTML = `
-        <div class="note-detail">
-            <div class="note-detail-section">
-                <h3>Title</h3>
-                <div class="note-detail-title">
-                    ${note.title ? escapeHtml(note.title) : 'Untitled Note'}
-                </div>
-            </div>
-
-            ${note.note ? `
-                <div class="note-detail-section">
-                    <h3>Your Notes</h3>
-                    <div class="note-detail-content">
-                        ${escapeHtml(note.note)}
-                    </div>
-                </div>
-            ` : ''}
-
-            <div class="note-detail-section">
-                <h3>Original Message</h3>
-                <div class="note-detail-message">
-                    ${escapeHtml(note.message.content)}
-                </div>
-            </div>
-
-            <div class="note-detail-section">
-                <h3>Metadata</h3>
-                <div class="note-detail-meta">
-                    <div class="note-detail-meta-item">
-                        <strong>From Conversation</strong>
-                        <span>${escapeHtml(note.message.conversation.title)}</span>
-                    </div>
-                    <div class="note-detail-meta-item">
-                        <strong>Current Book</strong>
-                        <span>${note.book ? escapeHtml(note.book.name) : 'Inbox (unorganized)'}</span>
-                    </div>
-                    <div class="note-detail-meta-item">
-                        <strong>Saved On</strong>
-                        <span>${formatDate(note.createdAt)}</span>
-                    </div>
-                    <div class="note-detail-meta-item">
-                        <strong>Model Used</strong>
-                        <span>${note.message.modelUsed}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="note-detail-section">
-                <h3>Actions</h3>
-                <div class="note-detail-actions">
-                    <div class="form-group">
-                        <label>Move to Book</label>
-                        <select id="noteBookSelect" class="form-control">
-                            <option value="">Inbox (unorganized)</option>
-                            ${books.map(book => `
-                                <option value="${book.id}" ${note.bookId === book.id ? 'selected' : ''}>
-                                    ${escapeHtml(book.name)}
-                                </option>
-                            `).join('')}
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" onclick="moveNote('${note.id}')">
-                        💾 Save Location
-                    </button>
-                    <button class="btn btn-danger" onclick="deleteNote('${note.id}')">
-                        🗑️ Delete Note
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    modal.style.display = 'flex';
+    document.getElementById('editNoteId').value = note.id;
+    document.getElementById('editNoteTitle').value = note.title || '';
+    document.getElementById('editNoteContent').value = note.note || '';
+    document.getElementById('editNoteBook').value = note.bookId || '';
+    document.getElementById('editNoteModal').style.display = 'flex';
 }
 
-function closeNoteModal() {
-    document.getElementById('noteModal').style.display = 'none';
+function closeEditNoteModal() {
+    document.getElementById('editNoteModal').style.display = 'none';
 }
 
-async function moveNote(noteId) {
-    const bookId = document.getElementById('noteBookSelect').value || null;
+document.getElementById('editNoteForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const noteId = document.getElementById('editNoteId').value;
+    const title = document.getElementById('editNoteTitle').value.trim();
+    const note = document.getElementById('editNoteContent').value.trim();
+    const bookId = document.getElementById('editNoteBook').value || null;
 
     try {
         await apiCall(`/api/knowledge/notes/${noteId}`, {
             method: 'PUT',
-            body: JSON.stringify({ bookId }),
+            body: JSON.stringify({ title, note, bookId }),
         });
 
-        await loadBooks();
-        await loadNotes(currentBookId);
-        closeNoteModal();
-
-        // Refresh current view
-        if (currentView === 'inbox') {
-            renderInbox();
-        } else if (currentView === 'bookDetail') {
-            renderBookDetail(currentBookId);
-        }
+        closeEditNoteModal();
+        await loadNotes();
     } catch (error) {
-        alert('Failed to move note: ' + error.message);
+        console.error('Failed to update note:', error);
+        alert('Failed to update note: ' + error.message);
     }
-}
+});
 
 async function deleteNote(noteId) {
-    if (!confirm('Delete this note permanently?')) return;
+    if (!confirm('Delete this note from your Knowledge Base?')) {
+        return;
+    }
 
     try {
         await apiCall(`/api/knowledge/notes/${noteId}`, {
             method: 'DELETE',
         });
 
-        await loadBooks();
-        await loadNotes(currentBookId);
-        closeNoteModal();
-
-        // Refresh current view
-        if (currentView === 'inbox') {
-            renderInbox();
-        } else if (currentView === 'bookDetail') {
-            renderBookDetail(currentBookId);
-        }
+        await loadNotes();
+        await loadTrainingCount();
     } catch (error) {
+        console.error('Failed to delete note:', error);
         alert('Failed to delete note: ' + error.message);
     }
 }
 
-// Utility functions
+// ========== Training Markers ==========
+
+async function toggleNoteTraining(noteId) {
+    try {
+        await apiCall(`/api/knowledge/notes/${noteId}/toggle-training`, {
+            method: 'POST',
+        });
+
+        await loadNotes();
+        await loadTrainingCount();
+    } catch (error) {
+        console.error('Failed to toggle training mark:', error);
+        alert('Failed to toggle training mark');
+    }
+}
+
+async function toggleBookTraining(bookId) {
+    try {
+        await apiCall(`/api/knowledge/books/${bookId}/toggle-training`, {
+            method: 'POST',
+        });
+
+        await loadBooks();
+        await loadTrainingCount();
+    } catch (error) {
+        console.error('Failed to toggle book training mark:', error);
+        alert('Failed to toggle training mark');
+    }
+}
+
+async function loadTrainingCount() {
+    try {
+        const count = await apiCall('/api/knowledge/training/count');
+
+        if (count.totalSamples > 0) {
+            document.getElementById('trainingBadge').style.display = 'flex';
+            document.getElementById('trainingCount').textContent = count.totalSamples;
+        } else {
+            document.getElementById('trainingBadge').style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Failed to load training count:', error);
+    }
+}
+
+// ========== Search ==========
+
+let searchTimeout = null;
+
+function handleSearchKeyup(event) {
+    clearTimeout(searchTimeout);
+
+    if (event.key === 'Enter') {
+        performSearch();
+        return;
+    }
+
+    searchTimeout = setTimeout(() => {
+        performSearch();
+    }, 500);
+}
+
+async function performSearch() {
+    const query = document.getElementById('searchInput').value.trim();
+
+    if (!query) {
+        document.getElementById('searchResults').style.display = 'none';
+        document.getElementById('notesList').style.display = allNotes.length > 0 ? 'grid' : 'none';
+        document.getElementById('welcomeMessage').style.display = allNotes.length === 0 ? 'block' : 'none';
+        return;
+    }
+
+    try {
+        const results = await apiCall(`/api/knowledge/search?q=${encodeURIComponent(query)}`);
+
+        document.getElementById('notesList').style.display = 'none';
+        document.getElementById('welcomeMessage').style.display = 'none';
+        document.getElementById('searchResults').style.display = 'block';
+
+        const resultsDiv = document.getElementById('searchResults');
+
+        if (results.length === 0) {
+            resultsDiv.innerHTML = '<p class="placeholder">No results found for "' + escapeHtml(query) + '"</p>';
+        } else {
+            resultsDiv.innerHTML = `
+                <h3>Search Results (${results.length})</h3>
+                <div class="notes-list">
+                    ${results.map(note => `
+                        <div class="note-card ${note.markedForTraining ? 'marked-for-training' : ''}">
+                            <div class="note-header">
+                                <div class="note-title">${note.title ? escapeHtml(note.title) : 'Untitled'}</div>
+                                <div class="note-actions">
+                                    <button onclick="toggleNoteTraining('${note.id}')"
+                                            class="btn-icon-only ${note.markedForTraining ? 'active' : ''}"
+                                            title="${note.markedForTraining ? 'Remove from training' : 'Mark for AI training'}">
+                                        🧠
+                                    </button>
+                                </div>
+                            </div>
+                            ${note.note ? `<div class="note-content">${highlightSearchTerm(escapeHtml(note.note), query)}</div>` : ''}
+                            <div class="note-message">
+                                <div class="message-role">${note.message.role === 'user' ? 'You' : 'HAL'}:</div>
+                                <div class="message-text">${highlightSearchTerm(formatMessage(note.message.content), query)}</div>
+                            </div>
+                            <div class="note-footer">
+                                <span class="note-book">${note.book ? '📚 ' + escapeHtml(note.book.name) : '📄 Loose note'}</span>
+                                <span class="note-date">${new Date(note.createdAt).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Search failed:', error);
+    }
+}
+
+function highlightSearchTerm(text, term) {
+    const regex = new RegExp(`(${term})`, 'gi');
+    return text.replace(regex, '<mark>$1</mark>');
+}
+
+// ========== Export / Import ==========
+
+async function exportBook(bookId) {
+    try {
+        const token = localStorage.getItem('hal_token');
+        window.open(`/api/knowledge/books/${bookId}/export?token=${token}`, '_blank');
+    } catch (error) {
+        console.error('Failed to export book:', error);
+        alert('Failed to export book');
+    }
+}
+
+function showImportModal() {
+    document.getElementById('importModal').style.display = 'flex';
+    document.getElementById('importFile').value = '';
+    document.getElementById('importPreview').style.display = 'none';
+    document.getElementById('importError').textContent = '';
+    document.getElementById('importBtn').disabled = true;
+    importData = null;
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').style.display = 'none';
+}
+
+function handleImportFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            importData = JSON.parse(e.target.result);
+
+            // Validate
+            if (!importData.version || !importData.book || !importData.notes) {
+                throw new Error('Invalid file format');
+            }
+
+            // Show preview
+            document.getElementById('importBookName').textContent = importData.book.name;
+            document.getElementById('importNoteCount').textContent = importData.notes.length;
+            document.getElementById('importExportedBy').textContent = importData.exportedBy;
+            document.getElementById('importPreview').style.display = 'block';
+            document.getElementById('importBtn').disabled = false;
+            document.getElementById('importError').textContent = '';
+        } catch (error) {
+            document.getElementById('importError').textContent = 'Invalid file format';
+            document.getElementById('importBtn').disabled = true;
+        }
+    };
+    reader.readAsText(file);
+}
+
+async function confirmImport() {
+    if (!importData) return;
+
+    try {
+        const result = await apiCall('/api/knowledge/books/import', {
+            method: 'POST',
+            body: JSON.stringify(importData),
+        });
+
+        closeImportModal();
+        await loadBooks();
+        await loadNotes();
+        alert(`✅ Imported "${result.book.name}" with ${result.imported} notes!`);
+    } catch (error) {
+        console.error('Failed to import book:', error);
+        document.getElementById('importError').textContent = error.message || 'Failed to import book';
+    }
+}
+
+// ========== Utilities ==========
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now - date;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
-    if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
-    if (days < 365) return `${Math.floor(days / 30)} months ago`;
-    return date.toLocaleDateString();
+// Format message with code blocks and inline code
+function formatMessage(text) {
+    let formatted = escapeHtml(text);
+    formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
+        return `<pre><code>${code.trim()}</code></pre>`;
+    });
+    formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+    const parts = formatted.split(/(<pre>[\s\S]*?<\/pre>)/);
+    formatted = parts.map((part, i) => {
+        if (i % 2 === 0) {
+            return part.replace(/\n/g, '<br>');
+        }
+        return part;
+    }).join('');
+    return formatted;
 }
 
-// Event listeners
-document.getElementById('newBookBtn').addEventListener('click', openNewBookModal);
-document.getElementById('editBookBtn').addEventListener('click', openEditBookModal);
-document.getElementById('deleteBookBtn').addEventListener('click', deleteBook);
-document.getElementById('backToBooksBtn').addEventListener('click', () => showView('books'));
+// ========== Theme & UI ==========
 
-document.getElementById('newBookForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('bookName').value;
-    const description = document.getElementById('bookDescription').value;
-    await createBook(name, description);
-});
+function initTheme() {
+    const savedTheme = localStorage.getItem('hal_theme');
+    if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.querySelectorAll('.theme-toggle').forEach(btn => {
+            btn.textContent = '☀️';
+        });
+    }
+}
 
-document.getElementById('editBookForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('editBookId').value;
-    const name = document.getElementById('editBookName').value;
-    const description = document.getElementById('editBookDescription').value;
-    await updateBook(id, name, description);
-});
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
-// Navigation buttons
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('hal_theme', newTheme);
+
+    document.querySelectorAll('.theme-toggle').forEach(btn => {
+        btn.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    });
+}
+
+function loadSidebarAvatar() {
+    const avatar = localStorage.getItem('hal_avatar');
+    const avatarDiv = document.getElementById('sidebarAvatar');
+
+    if (avatar) {
+        avatarDiv.innerHTML = `<img src="${avatar}" alt="${user.firstName}">`;
+    } else {
+        avatarDiv.textContent = user.firstName.charAt(0).toUpperCase();
+    }
+}
+
+// ========== Mobile Sidebar ==========
+
+function initMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('mobileBackdrop');
+
+    if (window.innerWidth <= 480) {
+        sidebar.classList.add('collapsed');
+    }
+}
+
+function setupAutoCollapse() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('mobileBackdrop');
+
+    backdrop.addEventListener('click', closeSidebar);
+}
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('mobileBackdrop');
+    const body = document.body;
+
+    sidebar.classList.toggle('collapsed');
+
+    if (window.innerWidth <= 480) {
+        if (sidebar.classList.contains('collapsed')) {
+            backdrop.classList.remove('active');
+            body.classList.remove('sidebar-open');
+        } else {
+            backdrop.classList.add('active');
+            body.classList.add('sidebar-open');
+        }
+    }
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('mobileBackdrop');
+    const body = document.body;
+
+    sidebar.classList.add('collapsed');
+    backdrop.classList.remove('active');
+    body.classList.remove('sidebar-open');
+}
+
+// ========== Navigation ==========
+
 document.getElementById('chatBtn').addEventListener('click', () => {
     window.location.href = '/chat.html';
 });
 
-document.getElementById('dashboardBtn')?.addEventListener('click', () => {
-    window.location.href = '/parent.html';
+document.getElementById('profileBtn').addEventListener('click', () => {
+    window.location.href = '/profile.html';
 });
+
+if (user.role === 'PARENT') {
+    document.getElementById('dashboardBtn').style.display = 'block';
+    document.getElementById('dashboardBtn').addEventListener('click', () => {
+        window.location.href = '/parent.html';
+    });
+}
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
     localStorage.removeItem('hal_token');
     localStorage.removeItem('hal_user');
     window.location.href = '/';
 });
-
-// Close modals when clicking outside
-window.addEventListener('click', (e) => {
-    if (e.target.classList.contains('modal')) {
-        closeNewBookModal();
-        closeEditBookModal();
-        closeNoteModal();
-    }
-});
-
-// Initialize
-loadBooks();
-loadNotes();

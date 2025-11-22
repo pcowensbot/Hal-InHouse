@@ -44,6 +44,10 @@
                     <span class="nav-icon">🤖</span>
                     <span class="nav-text">My Devices</span>
                 </a>
+                <a href="#admin" class="nav-item" onclick="showTab('admin')">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">System Admin</span>
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <div class="user-info">
@@ -219,6 +223,152 @@ P.S. This code is for one-time use only, so keep it safe! 🔒</textarea>
                     <!-- Devices will load here -->
                 </div>
             </div>
+
+            <!-- System Admin Tab -->
+            <div id="adminTab" class="tab-content">
+                <h1>⚙️ System Administration</h1>
+                <p class="subtitle">Manage AI models, monitor system resources, and configure settings</p>
+
+                <!-- Hardware Overview -->
+                <div class="admin-section">
+                    <h2>💻 System Hardware</h2>
+                    <div id="hardwareInfo" class="hardware-grid">
+                        <div class="loading">Loading hardware information...</div>
+                    </div>
+                </div>
+
+                <!-- Disk Usage -->
+                <div class="admin-section">
+                    <h2>💾 Disk Usage</h2>
+                    <div id="diskUsage" class="disk-usage">
+                        <div class="loading">Loading disk usage...</div>
+                    </div>
+                </div>
+
+                <!-- Model Management -->
+                <div class="admin-section">
+                    <h2>🤖 AI Models</h2>
+
+                    <div class="model-actions">
+                        <button onclick="showModelLibrary()" class="btn btn-primary">
+                            <span>📚 Model Library</span>
+                        </button>
+                        <button onclick="refreshModels()" class="btn btn-secondary">
+                            <span>🔄 Refresh List</span>
+                        </button>
+                    </div>
+
+                    <div id="defaultModelSection" class="default-model-section">
+                        <label>Default Model for Chats:</label>
+                        <select id="defaultModelSelect" onchange="setDefaultModel()">
+                            <option value="">Loading models...</option>
+                        </select>
+                    </div>
+
+                    <div id="modelsList" class="models-list">
+                        <div class="loading">Loading installed models...</div>
+                    </div>
+                </div>
+
+                <!-- Maintenance Mode -->
+                <div class="admin-section">
+                    <h2>🧠 Maintenance Mode</h2>
+                    <p class="subtitle">Schedule system downtime for AI training and fine-tuning</p>
+
+                    <div class="maintenance-config">
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="maintenanceEnabled" onchange="updateMaintenanceSettings()">
+                                <span>Enable Scheduled Maintenance</span>
+                            </label>
+                        </div>
+
+                        <div id="maintenanceSchedule" class="maintenance-schedule" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="maintenanceStart">Start Time</label>
+                                    <select id="maintenanceStart" onchange="updateMaintenanceSettings()">
+                                        <option value="0">12:00 AM</option>
+                                        <option value="1">1:00 AM</option>
+                                        <option value="2" selected>2:00 AM</option>
+                                        <option value="3">3:00 AM</option>
+                                        <option value="4">4:00 AM</option>
+                                        <option value="5">5:00 AM</option>
+                                        <option value="6">6:00 AM</option>
+                                        <option value="7">7:00 AM</option>
+                                        <option value="8">8:00 AM</option>
+                                        <option value="9">9:00 AM</option>
+                                        <option value="10">10:00 AM</option>
+                                        <option value="11">11:00 AM</option>
+                                        <option value="12">12:00 PM</option>
+                                        <option value="13">1:00 PM</option>
+                                        <option value="14">2:00 PM</option>
+                                        <option value="15">3:00 PM</option>
+                                        <option value="16">4:00 PM</option>
+                                        <option value="17">5:00 PM</option>
+                                        <option value="18">6:00 PM</option>
+                                        <option value="19">7:00 PM</option>
+                                        <option value="20">8:00 PM</option>
+                                        <option value="21">9:00 PM</option>
+                                        <option value="22">10:00 PM</option>
+                                        <option value="23">11:00 PM</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="maintenanceEnd">End Time</label>
+                                    <select id="maintenanceEnd" onchange="updateMaintenanceSettings()">
+                                        <option value="0">12:00 AM</option>
+                                        <option value="1">1:00 AM</option>
+                                        <option value="2">2:00 AM</option>
+                                        <option value="3">3:00 AM</option>
+                                        <option value="4">4:00 AM</option>
+                                        <option value="5">5:00 AM</option>
+                                        <option value="6" selected>6:00 AM</option>
+                                        <option value="7">7:00 AM</option>
+                                        <option value="8">8:00 AM</option>
+                                        <option value="9">9:00 AM</option>
+                                        <option value="10">10:00 AM</option>
+                                        <option value="11">11:00 AM</option>
+                                        <option value="12">12:00 PM</option>
+                                        <option value="13">1:00 PM</option>
+                                        <option value="14">2:00 PM</option>
+                                        <option value="15">3:00 PM</option>
+                                        <option value="16">4:00 PM</option>
+                                        <option value="17">5:00 PM</option>
+                                        <option value="18">6:00 PM</option>
+                                        <option value="19">7:00 PM</option>
+                                        <option value="20">8:00 PM</option>
+                                        <option value="21">9:00 PM</option>
+                                        <option value="22">10:00 PM</option>
+                                        <option value="23">11:00 PM</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="maintenanceGPUs">GPUs to Use</label>
+                                    <select id="maintenanceGPUs" onchange="updateMaintenanceSettings()">
+                                        <option value="gpu0">GPU 0 Only</option>
+                                        <option value="gpu1">GPU 1 Only</option>
+                                        <option value="both" selected>Both GPUs (System Blocked)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="maintenanceMessage">Custom Message for Users</label>
+                                <textarea id="maintenanceMessage" rows="3"
+                                    placeholder="e.g., System is down for AI training. Back at 6:00 AM!"
+                                    onchange="updateMaintenanceSettings()"></textarea>
+                            </div>
+
+                            <div class="maintenance-status" id="maintenanceStatus">
+                                <div class="loading">Loading maintenance status...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -277,6 +427,121 @@ P.S. This code is for one-time use only, so keep it safe! 🔒</textarea>
   }'</code></pre>
                 </div>
                 <button onclick="closeApiKeyModal()" class="btn btn-primary" style="margin-top: 15px;">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Library Modal -->
+    <div id="modelLibraryModal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📚 Model Library</h2>
+                <button onclick="closeModelLibrary()" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="recommendedModels" class="model-recommendations">
+                    <!-- Hardware recommendations will be inserted here -->
+                </div>
+
+                <div class="model-categories">
+                    <h3>Popular Models by Category</h3>
+
+                    <div class="model-category">
+                        <h4>💬 Chat & General Purpose</h4>
+                        <div class="model-grid">
+                            <div class="model-library-item">
+                                <div class="model-lib-header">
+                                    <strong>llama3.1:8b</strong>
+                                    <span class="model-lib-size">~4.7GB</span>
+                                </div>
+                                <p>Meta's latest Llama 3.1, great all-around model</p>
+                                <button onclick="pullModel('llama3.1:8b')" class="btn btn-sm btn-primary">Download</button>
+                            </div>
+                            <div class="model-library-item">
+                                <div class="model-lib-header">
+                                    <strong>llama3.2:3b</strong>
+                                    <span class="model-lib-size">~2GB</span>
+                                </div>
+                                <p>Smaller, faster Llama for quick responses</p>
+                                <button onclick="pullModel('llama3.2:3b')" class="btn btn-sm btn-primary">Download</button>
+                            </div>
+                            <div class="model-library-item">
+                                <div class="model-lib-header">
+                                    <strong>mistral:7b</strong>
+                                    <span class="model-lib-size">~4.1GB</span>
+                                </div>
+                                <p>Efficient and powerful 7B model from Mistral AI</p>
+                                <button onclick="pullModel('mistral:7b')" class="btn btn-sm btn-primary">Download</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-category">
+                        <h4>💻 Coding Specialists</h4>
+                        <div class="model-grid">
+                            <div class="model-library-item">
+                                <div class="model-lib-header">
+                                    <strong>qwen2.5-coder:7b</strong>
+                                    <span class="model-lib-size">~4.7GB</span>
+                                </div>
+                                <p>Excellent for code generation and debugging</p>
+                                <button onclick="pullModel('qwen2.5-coder:7b')" class="btn btn-sm btn-primary">Download</button>
+                            </div>
+                            <div class="model-library-item">
+                                <div class="model-lib-header">
+                                    <strong>deepseek-coder:6.7b</strong>
+                                    <span class="model-lib-size">~3.8GB</span>
+                                </div>
+                                <p>Specialized in programming tasks</p>
+                                <button onclick="pullModel('deepseek-coder:6.7b')" class="btn btn-sm btn-primary">Download</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-category">
+                        <h4>🧠 Reasoning & Large Models (Requires 16GB+ VRAM)</h4>
+                        <div class="model-grid">
+                            <div class="model-library-item">
+                                <div class="model-lib-header">
+                                    <strong>llama3.1:70b</strong>
+                                    <span class="model-lib-size">~40GB</span>
+                                </div>
+                                <p>Most capable Llama model, exceptional reasoning</p>
+                                <button onclick="pullModel('llama3.1:70b')" class="btn btn-sm btn-primary">Download</button>
+                            </div>
+                            <div class="model-library-item">
+                                <div class="model-lib-header">
+                                    <strong>qwen2.5:72b</strong>
+                                    <span class="model-lib-size">~41GB</span>
+                                </div>
+                                <p>Top-tier model for complex tasks</p>
+                                <button onclick="pullModel('qwen2.5:72b')" class="btn btn-sm btn-primary">Download</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-category">
+                        <h4>🎯 Lightweight (CPU/Low VRAM)</h4>
+                        <div class="model-grid">
+                            <div class="model-library-item">
+                                <div class="model-lib-header">
+                                    <strong>phi3:mini</strong>
+                                    <span class="model-lib-size">~2.3GB</span>
+                                </div>
+                                <p>Microsoft's small but capable model</p>
+                                <button onclick="pullModel('phi3:mini')" class="btn btn-sm btn-primary">Download</button>
+                            </div>
+                            <div class="model-library-item">
+                                <div class="model-lib-header">
+                                    <strong>gemma2:2b</strong>
+                                    <span class="model-lib-size">~1.6GB</span>
+                                </div>
+                                <p>Google's lightweight model, runs on CPU</p>
+                                <button onclick="pullModel('gemma2:2b')" class="btn btn-sm btn-primary">Download</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
