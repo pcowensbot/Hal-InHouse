@@ -36,6 +36,26 @@ function initTheme() {
     const savedTheme = localStorage.getItem('hal_theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateThemeSelection(savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+function updateThemeIcon(theme) {
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        const icon = themeToggle.querySelector('.btn-icon');
+        if (icon) {
+            icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+    }
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('hal_theme', newTheme);
+    updateThemeSelection(newTheme);
+    updateThemeIcon(newTheme);
 }
 
 function updateThemeSelection(theme) {
@@ -47,6 +67,7 @@ function selectTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('hal_theme', theme);
     updateThemeSelection(theme);
+    updateThemeIcon(theme);
 }
 
 // Initialize page
@@ -187,6 +208,11 @@ function showMessage(message, type) {
         messageDiv.textContent = '';
     }, 3000);
 }
+
+// Chat button
+document.getElementById('chatBtn').addEventListener('click', () => {
+    window.location.href = '/chat.html';
+});
 
 // Logout
 document.getElementById('logoutBtn').addEventListener('click', () => {

@@ -323,6 +323,22 @@ body {
     font-size: 13px;
 }
 
+.new-chat-buttons {
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.new-chat-buttons button {
+    width: 100%;
+}
+
+.sidebar.collapsed .new-chat-buttons {
+    padding: 10px 5px;
+}
+
 .conversation-list {
     flex: 1;
     overflow-y: auto;
