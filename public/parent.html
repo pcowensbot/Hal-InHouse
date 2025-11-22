@@ -40,9 +40,9 @@
                     <span class="nav-icon">🔍</span>
                     <span class="nav-text">Search</span>
                 </a>
-                <a href="#knowledge" class="nav-item" onclick="showTab('knowledge')">
-                    <span class="nav-icon">📚</span>
-                    <span class="nav-text">Knowledge Base</span>
+                <a href="#devices" class="nav-item" onclick="showTab('devices')">
+                    <span class="nav-icon">🤖</span>
+                    <span class="nav-text">My Devices</span>
                 </a>
             </nav>
             <div class="sidebar-footer">
@@ -198,40 +198,89 @@ P.S. This code is for one-time use only, so keep it safe! 🔒</textarea>
                     <select id="searchUserFilter" class="filter-select">
                         <option value="">All Users</option>
                     </select>
-                    <button onclick="performSearch()" class="btn btn-primary">Search</button>
                 </div>
+                <button onclick="performSearch()" class="btn btn-primary" style="margin-top: 10px; width: 100%; max-width: 200px;">Search</button>
 
                 <div id="searchResults" class="search-results">
                     <p class="placeholder">Enter keywords to search messages</p>
                 </div>
             </div>
 
-            <!-- Knowledge Base Tab -->
-            <div id="knowledgeTab" class="tab-content">
-                <h1>📚 Family Knowledge Base</h1>
+            <!-- My Devices Tab -->
+            <div id="devicesTab" class="tab-content">
+                <h1>🤖 My Devices</h1>
+                <p class="subtitle">Manage API keys for your IoT devices and robots</p>
 
-                <div class="knowledge-filters">
-                    <select id="knowledgeUserFilter" class="filter-select" onchange="loadFamilyKnowledge()">
-                        <option value="">All Family Members</option>
-                    </select>
-                    <select id="knowledgeTypeFilter" class="filter-select" onchange="filterKnowledgeView()">
-                        <option value="all">Books & Notes</option>
-                        <option value="books">Books Only</option>
-                        <option value="notes">Notes Only</option>
-                    </select>
-                </div>
+                <button onclick="showCreateDeviceModal()" class="btn btn-primary" style="margin-bottom: 20px;">
+                    <span>➕ Create New Device</span>
+                </button>
 
-                <div id="knowledgeStats" class="stats-grid" style="margin-top: 20px;">
-                    <!-- Stats will load here -->
-                </div>
-
-                <div id="knowledgeContent" class="knowledge-content" style="margin-top: 30px;">
-                    <p class="placeholder">Loading knowledge base...</p>
+                <div id="devicesList" class="devices-list">
+                    <!-- Devices will load here -->
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="/parent.js?v=5"></script>
+    <!-- Create Device Modal -->
+    <div id="createDeviceModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Device</h2>
+                <button onclick="closeCreateDeviceModal()" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="createDeviceForm">
+                    <div class="form-group">
+                        <label for="deviceName">Device Name *</label>
+                        <input type="text" id="deviceName" placeholder="e.g. Vector Bot, Kitchen Assistant" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="deviceDescription">Description (optional)</label>
+                        <textarea id="deviceDescription" rows="3" placeholder="What is this device used for?"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Device</button>
+                    <div id="createDeviceError" class="error"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Show API Key Modal -->
+    <div id="apiKeyModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✅ Device Created!</h2>
+                <button onclick="closeApiKeyModal()" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning" style="margin-bottom: 20px;">
+                    ⚠️ <strong>Important:</strong> Save this API key securely. It will only be shown once!
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <div class="api-key-display">
+                        <code id="generatedApiKey" class="api-key-text"></code>
+                        <button onclick="copyApiKey()" class="btn btn-secondary btn-sm" id="copyApiKeyBtn">
+                            📋 Copy
+                        </button>
+                    </div>
+                </div>
+                <div class="api-key-usage">
+                    <h3>How to use this API key:</h3>
+                    <pre><code>curl -X POST https://your-server.com/api/llm/chat \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Hello from my device!",
+    "model": "llama3.1:8b"
+  }'</code></pre>
+                </div>
+                <button onclick="closeApiKeyModal()" class="btn btn-primary" style="margin-top: 15px;">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/parent.js?v=6"></script>
 </body>
 </html>

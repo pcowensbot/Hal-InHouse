@@ -20,6 +20,7 @@ model User {
   conversations Conversation[]
   books         Book[]
   starredNotes  StarredNote[]
+  devices       Device[]
 
   @@map("users")
 }
@@ -121,4 +122,21 @@ model StarredNote {
   @@index([messageId])
   @@index([bookId])
   @@map("starred_notes")
+}
+
+model Device {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  apiKeyHash  String    @unique // SHA-256 hash of the API key
+  lastUsedAt  DateTime?
+  requestCount Int      @default(0) // Track usage
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([apiKeyHash])
+  @@map("devices")
 }

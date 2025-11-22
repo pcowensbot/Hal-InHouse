@@ -11,6 +11,8 @@ import chatRoutes from './routes/chat.js';
 import parentRoutes from './routes/parent.js';
 import imageRoutes from './routes/image.js';
 import knowledgeRoutes from './routes/knowledge.js';
+import deviceRoutes from './routes/devices.js';
+import llmRoutes from './routes/llm.js';
 
 // Import services
 import ollamaService from './services/ollama.js';
@@ -74,6 +76,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/parent', parentRoutes);
 app.use('/api/image', imageRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
+app.use('/api/devices', deviceRoutes);
+app.use('/api/llm', llmRoutes);
 
 // Serve index.html for all other routes (SPA)
 app.get('*', (req, res) => {
