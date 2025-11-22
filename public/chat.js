@@ -157,6 +157,15 @@ async function apiCall(endpoint, options = {}) {
         return;
     }
 
+    // Handle maintenance mode
+    if (response.status === 503) {
+        const data = await response.json();
+        if (data.inMaintenance) {
+            window.location.href = '/maintenance.html';
+            return;
+        }
+    }
+
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data.error || 'Request failed');
@@ -223,6 +232,20 @@ if (user.role === 'PARENT') {
     document.getElementById('dashboardBtn').style.display = 'block';
 }
 
+// Check maintenance mode on page load
+async function checkMaintenance() {
+    try {
+        const response = await fetch('/api/admin/maintenance/status');
+        const data = await response.json();
+
+        if (data.inMaintenance) {
+            window.location.href = '/maintenance.html';
+        }
+    } catch (error) {
+        console.error('Failed to check maintenance status:', error);
+    }
+}
+
 // Initialize theme
 initTheme();
 
@@ -237,6 +260,9 @@ initMobileSidebar();
 
 // Setup auto-collapse on item click
 setupAutoCollapse();
+
+// Check maintenance mode
+checkMaintenance();
 
 // Load conversations
 async function loadConversations() {

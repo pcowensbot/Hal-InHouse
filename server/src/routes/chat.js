@@ -217,6 +217,41 @@ router.post('/conversations/:id/messages', async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    // Check if system is in maintenance mode
+    const settings = await prisma.settings.findFirst();
+    if (settings && settings.maintenanceEnabled) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const startHour = settings.maintenanceStartHour;
+      const endHour = settings.maintenanceEndHour;
+
+      // Check if current time is in maintenance window
+      let inMaintenanceWindow = false;
+      if (startHour < endHour) {
+        // Same day window (e.g., 2 AM to 6 AM)
+        inMaintenanceWindow = currentHour >= startHour && currentHour < endHour;
+      } else {
+        // Overnight window (e.g., 10 PM to 4 AM)
+        inMaintenanceWindow = currentHour >= startHour || currentHour < endHour;
+      }
+
+      // If both GPUs are in maintenance, block all chat
+      if (inMaintenanceWindow && settings.maintenanceGPUs === 'both') {
+        const eta = new Date(now);
+        if (currentHour >= endHour) {
+          eta.setDate(eta.getDate() + 1);
+        }
+        eta.setHours(endHour, 0, 0, 0);
+
+        return res.status(503).json({
+          error: 'System in maintenance',
+          inMaintenance: true,
+          message: settings.maintenanceMessage || 'System is down for AI training maintenance.',
+          nextAvailable: eta.toISOString(),
+        });
+      }
+    }
+
     // Save user message
     const userMessage = await prisma.message.create({
       data: {

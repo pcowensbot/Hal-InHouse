@@ -299,4 +299,128 @@ router.post('/settings/default-model', async (req, res) => {
   }
 });
 
+// ========== Maintenance Mode ==========
+
+// Get maintenance settings
+router.get('/settings/maintenance', async (req, res) => {
+  try {
+    const settings = await prisma.settings.findFirst();
+
+    res.json({
+      enabled: settings?.maintenanceEnabled || false,
+      startHour: settings?.maintenanceStartHour || 2,
+      endHour: settings?.maintenanceEndHour || 6,
+      gpus: settings?.maintenanceGPUs || 'both',
+      message: settings?.maintenanceMessage || null,
+    });
+  } catch (error) {
+    console.error('Get maintenance settings error:', error);
+    res.status(500).json({ error: 'Failed to get maintenance settings' });
+  }
+});
+
+// Update maintenance settings
+router.post('/settings/maintenance', async (req, res) => {
+  try {
+    const { enabled, startHour, endHour, gpus, message } = req.body;
+
+    // Validate hours
+    if (startHour !== undefined && (startHour < 0 || startHour > 23)) {
+      return res.status(400).json({ error: 'Start hour must be between 0 and 23' });
+    }
+    if (endHour !== undefined && (endHour < 0 || endHour > 23)) {
+      return res.status(400).json({ error: 'End hour must be between 0 and 23' });
+    }
+
+    // Validate GPU selection
+    if (gpus && !['gpu0', 'gpu1', 'both'].includes(gpus)) {
+      return res.status(400).json({ error: 'GPUs must be "gpu0", "gpu1", or "both"' });
+    }
+
+    const updateData = {};
+    if (enabled !== undefined) updateData.maintenanceEnabled = enabled;
+    if (startHour !== undefined) updateData.maintenanceStartHour = startHour;
+    if (endHour !== undefined) updateData.maintenanceEndHour = endHour;
+    if (gpus !== undefined) updateData.maintenanceGPUs = gpus;
+    if (message !== undefined) updateData.maintenanceMessage = message;
+
+    const settings = await prisma.settings.upsert({
+      where: { id: 1 },
+      update: updateData,
+      create: {
+        id: 1,
+        ...updateData,
+      },
+    });
+
+    res.json({
+      success: true,
+      enabled: settings.maintenanceEnabled,
+      startHour: settings.maintenanceStartHour,
+      endHour: settings.maintenanceEndHour,
+      gpus: settings.maintenanceGPUs,
+      message: settings.maintenanceMessage,
+    });
+  } catch (error) {
+    console.error('Update maintenance settings error:', error);
+    res.status(500).json({ error: 'Failed to update maintenance settings' });
+  }
+});
+
+// Check if currently in maintenance mode
+router.get('/maintenance/status', async (req, res) => {
+  try {
+    const settings = await prisma.settings.findFirst();
+
+    if (!settings || !settings.maintenanceEnabled) {
+      return res.json({
+        inMaintenance: false,
+        gpusAvailable: 'both',
+      });
+    }
+
+    const now = new Date();
+    const currentHour = now.getHours();
+    const startHour = settings.maintenanceStartHour;
+    const endHour = settings.maintenanceEndHour;
+
+    // Check if current time is in maintenance window
+    let inMaintenanceWindow = false;
+    if (startHour < endHour) {
+      // Same day window (e.g., 2 AM to 6 AM)
+      inMaintenanceWindow = currentHour >= startHour && currentHour < endHour;
+    } else {
+      // Overnight window (e.g., 10 PM to 4 AM)
+      inMaintenanceWindow = currentHour >= startHour || currentHour < endHour;
+    }
+
+    // Calculate next availability time
+    let nextAvailableHour = endHour;
+    const eta = new Date(now);
+    if (currentHour >= endHour) {
+      // Next maintenance is tomorrow
+      eta.setDate(eta.getDate() + 1);
+    }
+    eta.setHours(nextAvailableHour, 0, 0, 0);
+
+    // Determine GPU availability
+    const gpusInMaintenance = settings.maintenanceGPUs;
+    const systemBlocked = inMaintenanceWindow && gpusInMaintenance === 'both';
+
+    res.json({
+      inMaintenance: systemBlocked,
+      maintenanceWindow: inMaintenanceWindow,
+      gpusInMaintenance: inMaintenanceWindow ? gpusInMaintenance : 'none',
+      gpusAvailable: inMaintenanceWindow ? (gpusInMaintenance === 'both' ? 'none' : (gpusInMaintenance === 'gpu0' ? 'gpu1' : 'gpu0')) : 'both',
+      nextAvailable: systemBlocked ? eta.toISOString() : null,
+      message: systemBlocked ? (settings.maintenanceMessage || 'System is down for AI training maintenance.') : null,
+      startHour: settings.maintenanceStartHour,
+      endHour: settings.maintenanceEndHour,
+    });
+  } catch (error) {
+    console.error('Check maintenance status error:', error);
+    res.status(500).json({ error: 'Failed to check maintenance status' });
+  }
+});
+
 export default router;

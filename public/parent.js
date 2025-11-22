@@ -886,6 +886,7 @@ async function loadAdminData() {
         loadHardwareInfo(),
         loadDiskUsage(),
         loadModels(),
+        loadMaintenanceSettings(),
     ]);
 }
 
@@ -1230,6 +1231,124 @@ async function deleteModel(modelName) {
     } catch (error) {
         console.error('Failed to delete model:', error);
         alert(`Failed to delete model: ${error.message}`);
+    }
+}
+
+// ========== Maintenance Mode ==========
+
+// Load maintenance settings
+async function loadMaintenanceSettings() {
+    try {
+        const settings = await apiCall('/api/admin/settings/maintenance');
+
+        // Update form fields
+        document.getElementById('maintenanceEnabled').checked = settings.enabled || false;
+        document.getElementById('maintenanceStart').value = settings.startHour || 2;
+        document.getElementById('maintenanceEnd').value = settings.endHour || 6;
+        document.getElementById('maintenanceGPUs').value = settings.gpus || 'both';
+        document.getElementById('maintenanceMessage').value = settings.message || '';
+
+        // Show/hide schedule section based on enabled state
+        const scheduleDiv = document.getElementById('maintenanceSchedule');
+        if (settings.enabled) {
+            scheduleDiv.style.display = 'block';
+            await updateMaintenanceStatus();
+        } else {
+            scheduleDiv.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Failed to load maintenance settings:', error);
+    }
+}
+
+// Update maintenance settings
+async function updateMaintenanceSettings() {
+    const enabled = document.getElementById('maintenanceEnabled').checked;
+    const startHour = parseInt(document.getElementById('maintenanceStart').value);
+    const endHour = parseInt(document.getElementById('maintenanceEnd').value);
+    const gpus = document.getElementById('maintenanceGPUs').value;
+    const message = document.getElementById('maintenanceMessage').value;
+
+    // Show/hide schedule section
+    const scheduleDiv = document.getElementById('maintenanceSchedule');
+    if (enabled) {
+        scheduleDiv.style.display = 'block';
+    } else {
+        scheduleDiv.style.display = 'none';
+    }
+
+    try {
+        await apiCall('/api/admin/settings/maintenance', {
+            method: 'POST',
+            body: JSON.stringify({
+                enabled,
+                startHour,
+                endHour,
+                gpus,
+                message: message || null,
+            }),
+        });
+
+        // Update status display
+        if (enabled) {
+            await updateMaintenanceStatus();
+        }
+    } catch (error) {
+        console.error('Failed to update maintenance settings:', error);
+        alert('Failed to save maintenance settings: ' + error.message);
+    }
+}
+
+// Update maintenance status display
+async function updateMaintenanceStatus() {
+    try {
+        const status = await apiCall('/api/admin/maintenance/status');
+        const statusDiv = document.getElementById('maintenanceStatus');
+
+        let html = '';
+
+        if (status.inMaintenance) {
+            const eta = new Date(status.nextAvailable);
+            html = `
+                <div class="alert alert-warning">
+                    <strong>⚠️ System Currently in Maintenance</strong><br>
+                    Users are seeing a maintenance page.<br>
+                    System will be available again at: ${eta.toLocaleTimeString()}
+                </div>
+            `;
+        } else if (status.maintenanceWindow) {
+            html = `
+                <div class="alert alert-info">
+                    <strong>ℹ️ In Maintenance Window</strong><br>
+                    Currently using ${status.gpusInMaintenance} for training.<br>
+                    ${status.gpusAvailable !== 'none' ? `Chats are still available using ${status.gpusAvailable}.` : 'All GPUs in use.'}
+                </div>
+            `;
+        } else {
+            const start = status.startHour || 2;
+            const end = status.endHour || 6;
+            const formatHour = (hour) => {
+                const period = hour >= 12 ? 'PM' : 'AM';
+                const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                return `${displayHour}:00 ${period}`;
+            };
+
+            html = `
+                <div class="alert alert-success">
+                    <strong>✅ System Available</strong><br>
+                    Next maintenance window: ${formatHour(start)} - ${formatHour(end)}
+                </div>
+            `;
+        }
+
+        statusDiv.innerHTML = html;
+    } catch (error) {
+        console.error('Failed to update maintenance status:', error);
+        document.getElementById('maintenanceStatus').innerHTML = `
+            <div class="alert alert-error">
+                Failed to check maintenance status
+            </div>
+        `;
     }
 }
 

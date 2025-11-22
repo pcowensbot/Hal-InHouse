@@ -66,12 +66,17 @@ model Message {
 }
 
 model Settings {
-  id              Int      @id @default(1)
-  householdName   String   @default("HAL")
-  imageGenEnabled Boolean  @default(false)
-  defaultModel    String   @default("llama3.1:8b")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                    Int      @id @default(1)
+  householdName         String   @default("HAL")
+  imageGenEnabled       Boolean  @default(false)
+  defaultModel          String   @default("llama3.1:8b")
+  maintenanceEnabled    Boolean  @default(false)
+  maintenanceStartHour  Int      @default(2) // 2 AM
+  maintenanceEndHour    Int      @default(6) // 6 AM
+  maintenanceGPUs       String   @default("both") // "gpu0", "gpu1", "both"
+  maintenanceMessage    String?  @db.Text // Custom message for users
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   @@map("settings")
 }
