@@ -27,8 +27,14 @@
             </div>
         </div>
 
+        <!-- Mobile Backdrop -->
+        <div class="mobile-backdrop" id="mobileBackdrop" onclick="closeSidebar()"></div>
+
         <!-- Main Content -->
         <div class="dashboard-main">
+            <div class="dashboard-header">
+                <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleSidebar()">☰</button>
+            </div>
             <div class="profile-container">
                 <h1>⚙️ Profile Settings</h1>
                 
@@ -51,7 +57,10 @@
 
                 <!-- Theme Section -->
                 <div class="profile-section">
-                    <h2>Theme</h2>
+                    <h2>Appearance Customization</h2>
+
+                    <!-- Dark/Light Mode -->
+                    <h3 style="font-size: 16px; margin-bottom: 15px; color: var(--text-light);">Color Mode</h3>
                     <div class="theme-selector">
                         <div class="theme-option" id="lightTheme" onclick="selectTheme('light')">
                             <div style="font-size: 32px; margin-bottom: 10px;">☀️</div>
@@ -62,6 +71,110 @@
                             <div>Dark Mode</div>
                         </div>
                     </div>
+
+                    <!-- Font Customization -->
+                    <h3 style="font-size: 16px; margin: 25px 0 15px; color: var(--text-light);">Font Settings</h3>
+                    <div class="form-group">
+                        <label>Font Family</label>
+                        <select id="fontFamily" onchange="updateFontFamily()">
+                            <option value="system">System Default</option>
+                            <option value="'Inter', sans-serif">Inter</option>
+                            <option value="'Roboto', sans-serif">Roboto</option>
+                            <option value="'Open Sans', sans-serif">Open Sans</option>
+                            <option value="'Lato', sans-serif">Lato</option>
+                            <option value="'Poppins', sans-serif">Poppins</option>
+                            <option value="'Montserrat', sans-serif">Montserrat</option>
+                            <option value="'Source Sans Pro', sans-serif">Source Sans Pro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Font Size</label>
+                        <div class="font-size-control">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="adjustFontSize(-1)">A-</button>
+                            <span id="fontSizeDisplay">Medium</span>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="adjustFontSize(1)">A+</button>
+                        </div>
+                    </div>
+
+                    <!-- Accent Color -->
+                    <h3 style="font-size: 16px; margin: 25px 0 15px; color: var(--text-light);">Accent Color</h3>
+                    <div class="color-picker-grid">
+                        <div class="color-option" data-color="#2563eb" onclick="selectAccentColor('#2563eb')" style="background: #2563eb;">
+                            <span class="color-check">✓</span>
+                        </div>
+                        <div class="color-option" data-color="#7c3aed" onclick="selectAccentColor('#7c3aed')" style="background: #7c3aed;">
+                            <span class="color-check">✓</span>
+                        </div>
+                        <div class="color-option" data-color="#db2777" onclick="selectAccentColor('#db2777')" style="background: #db2777;">
+                            <span class="color-check">✓</span>
+                        </div>
+                        <div class="color-option" data-color="#dc2626" onclick="selectAccentColor('#dc2626')" style="background: #dc2626;">
+                            <span class="color-check">✓</span>
+                        </div>
+                        <div class="color-option" data-color="#ea580c" onclick="selectAccentColor('#ea580c')" style="background: #ea580c;">
+                            <span class="color-check">✓</span>
+                        </div>
+                        <div class="color-option" data-color="#ca8a04" onclick="selectAccentColor('#ca8a04')" style="background: #ca8a04;">
+                            <span class="color-check">✓</span>
+                        </div>
+                        <div class="color-option" data-color="#16a34a" onclick="selectAccentColor('#16a34a')" style="background: #16a34a;">
+                            <span class="color-check">✓</span>
+                        </div>
+                        <div class="color-option" data-color="#0891b2" onclick="selectAccentColor('#0891b2')" style="background: #0891b2;">
+                            <span class="color-check">✓</span>
+                        </div>
+                    </div>
+
+                    <!-- Avatar Border Style -->
+                    <h3 style="font-size: 16px; margin: 25px 0 15px; color: var(--text-light);">Avatar Border</h3>
+                    <div class="form-group">
+                        <label>Border Style</label>
+                        <select id="avatarBorderStyle" onchange="updateAvatarBorder()">
+                            <option value="none">None</option>
+                            <option value="solid">Solid</option>
+                            <option value="double">Double</option>
+                            <option value="dotted">Dotted</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="gradient">Gradient</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Border Width</label>
+                        <input type="range" id="avatarBorderWidth" min="0" max="8" value="0" step="1" oninput="updateAvatarBorder()">
+                        <span id="borderWidthDisplay">0px</span>
+                    </div>
+                    <div class="form-group" id="borderColorGroup" style="display: none;">
+                        <label>Border Color</label>
+                        <div class="color-picker-grid">
+                            <div class="color-option small" data-border-color="#2563eb" onclick="selectBorderColor('#2563eb')" style="background: #2563eb;">
+                                <span class="color-check">✓</span>
+                            </div>
+                            <div class="color-option small" data-border-color="#7c3aed" onclick="selectBorderColor('#7c3aed')" style="background: #7c3aed;">
+                                <span class="color-check">✓</span>
+                            </div>
+                            <div class="color-option small" data-border-color="#db2777" onclick="selectBorderColor('#db2777')" style="background: #db2777;">
+                                <span class="color-check">✓</span>
+                            </div>
+                            <div class="color-option small" data-border-color="#dc2626" onclick="selectBorderColor('#dc2626')" style="background: #dc2626;">
+                                <span class="color-check">✓</span>
+                            </div>
+                            <div class="color-option small" data-border-color="#16a34a" onclick="selectBorderColor('#16a34a')" style="background: #16a34a;">
+                                <span class="color-check">✓</span>
+                            </div>
+                            <div class="color-option small" data-border-color="#0891b2" onclick="selectBorderColor('#0891b2')" style="background: #0891b2;">
+                                <span class="color-check">✓</span>
+                            </div>
+                            <div class="color-option small" data-border-color="#f59e0b" onclick="selectBorderColor('#f59e0b')" style="background: #f59e0b;">
+                                <span class="color-check">✓</span>
+                            </div>
+                            <div class="color-option small" data-border-color="#ffffff" onclick="selectBorderColor('#ffffff')" style="background: #ffffff; border: 1px solid var(--border);">
+                                <span class="color-check">✓</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="saveCustomization()" class="btn btn-primary" style="margin-top: 20px;">Save Customization</button>
+                    <div id="customizationMessage" style="margin-top: 10px; color: var(--success);"></div>
                 </div>
 
                 <!-- Account Info Section -->

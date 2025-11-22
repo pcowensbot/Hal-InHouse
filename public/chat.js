@@ -13,6 +13,42 @@ function initTheme() {
     updateThemeIcon(savedTheme);
 }
 
+// Load and apply customization
+function loadCustomization() {
+    const saved = localStorage.getItem('hal_customization');
+    if (saved) {
+        const customization = JSON.parse(saved);
+
+        // Font family
+        if (customization.fontFamily && customization.fontFamily !== 'system') {
+            document.body.style.fontFamily = customization.fontFamily;
+        }
+
+        // Font size
+        const fontSizeScales = [0.9, 1.0, 1.1];
+        if (customization.fontSize !== undefined) {
+            document.documentElement.style.fontSize = `${fontSizeScales[customization.fontSize] * 16}px`;
+        }
+
+        // Accent color
+        if (customization.accentColor) {
+            document.documentElement.style.setProperty('--primary', customization.accentColor);
+            const darkerColor = adjustColorBrightness(customization.accentColor, -20);
+            document.documentElement.style.setProperty('--primary-dark', darkerColor);
+        }
+    }
+}
+
+// Helper function to adjust color brightness
+function adjustColorBrightness(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+    const G = Math.max(0, Math.min(255, (num >> 8 & 0x00FF) + amt));
+    const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+    return '#' + (0x1000000 + (R << 16) + (G << 8) + B).toString(16).slice(1);
+}
+
 function updateThemeIcon(theme) {
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
@@ -28,10 +64,73 @@ function toggleTheme() {
     updateThemeIcon(newTheme);
 }
 
+// Mobile detection
+function isMobile() {
+    return window.innerWidth <= 480;
+}
+
 // Sidebar toggle
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('collapsed');
+    const backdrop = document.getElementById('mobileBackdrop');
+
+    if (isMobile()) {
+        // On mobile, toggle between hidden and visible
+        const isOpen = !sidebar.classList.contains('collapsed');
+
+        if (isOpen) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    } else {
+        // On desktop, just toggle collapsed state
+        sidebar.classList.toggle('collapsed');
+    }
+}
+
+function openSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('mobileBackdrop');
+
+    sidebar.classList.remove('collapsed');
+
+    if (isMobile()) {
+        backdrop.classList.add('active');
+        document.body.classList.add('sidebar-open');
+    }
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('mobileBackdrop');
+
+    sidebar.classList.add('collapsed');
+    backdrop.classList.remove('active');
+    document.body.classList.remove('sidebar-open');
+}
+
+// Auto-collapse sidebar on mobile on page load
+function initMobileSidebar() {
+    if (isMobile()) {
+        closeSidebar();
+    }
+
+    // Handle window resize
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (isMobile()) {
+                closeSidebar();
+            } else {
+                // On desktop, remove mobile-specific classes
+                const backdrop = document.getElementById('mobileBackdrop');
+                backdrop.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
+            }
+        }, 250);
+    });
 }
 
 // Auto-resize textarea
@@ -79,6 +178,12 @@ if (user.role === 'PARENT') {
 
 // Initialize theme
 initTheme();
+
+// Load customization
+loadCustomization();
+
+// Initialize mobile sidebar behavior
+initMobileSidebar();
 
 // Load conversations
 async function loadConversations() {

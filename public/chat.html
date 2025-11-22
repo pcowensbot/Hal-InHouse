@@ -31,9 +31,13 @@
             </div>
         </div>
 
+        <!-- Mobile Backdrop -->
+        <div class="mobile-backdrop" id="mobileBackdrop" onclick="closeSidebar()"></div>
+
         <!-- Main Chat Area -->
         <div class="chat-main">
             <div id="chatHeader" class="chat-header">
+                <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleSidebar()">☰</button>
                 <h3 id="chatTitle">Select a conversation</h3>
                 <div class="header-actions">
                     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>

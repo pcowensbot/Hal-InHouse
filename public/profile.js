@@ -195,6 +195,221 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     window.location.href = '/';
 });
 
+// Mobile detection and sidebar functions
+function isMobile() {
+    return window.innerWidth <= 480;
+}
+
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('mobileBackdrop');
+
+    if (isMobile()) {
+        const isOpen = !sidebar.classList.contains('collapsed');
+        if (isOpen) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    } else {
+        sidebar.classList.toggle('collapsed');
+    }
+}
+
+function openSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('mobileBackdrop');
+    sidebar.classList.remove('collapsed');
+    if (isMobile()) {
+        backdrop.classList.add('active');
+        document.body.classList.add('sidebar-open');
+    }
+}
+
+function closeSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('mobileBackdrop');
+    sidebar.classList.add('collapsed');
+    backdrop.classList.remove('active');
+    document.body.classList.remove('sidebar-open');
+}
+
+function initMobileSidebar() {
+    if (isMobile()) {
+        closeSidebar();
+    }
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (isMobile()) {
+                closeSidebar();
+            } else {
+                const backdrop = document.getElementById('mobileBackdrop');
+                backdrop.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
+            }
+        }, 250);
+    });
+}
+
+// Customization state
+let customization = {
+    fontFamily: 'system',
+    fontSize: 1, // 0 = small, 1 = medium, 2 = large
+    accentColor: '#2563eb',
+    avatarBorderStyle: 'none',
+    avatarBorderWidth: 0,
+    avatarBorderColor: '#2563eb'
+};
+
+// Font size labels
+const fontSizeLabels = ['Small', 'Medium', 'Large'];
+const fontSizeScales = [0.9, 1.0, 1.1];
+
+// Load customization from localStorage
+function loadCustomization() {
+    const saved = localStorage.getItem('hal_customization');
+    if (saved) {
+        customization = { ...customization, ...JSON.parse(saved) };
+    }
+    applyCustomization();
+    updateCustomizationUI();
+}
+
+// Apply customization to the page
+function applyCustomization() {
+    // Font family
+    if (customization.fontFamily !== 'system') {
+        document.body.style.fontFamily = customization.fontFamily;
+    } else {
+        document.body.style.fontFamily = '';
+    }
+
+    // Font size
+    document.documentElement.style.fontSize = `${fontSizeScales[customization.fontSize] * 16}px`;
+
+    // Accent color
+    document.documentElement.style.setProperty('--primary', customization.accentColor);
+    const darkerColor = adjustColorBrightness(customization.accentColor, -20);
+    document.documentElement.style.setProperty('--primary-dark', darkerColor);
+
+    // Avatar border
+    updateAvatarBorderDisplay();
+}
+
+// Update UI to reflect current customization
+function updateCustomizationUI() {
+    // Font family dropdown
+    document.getElementById('fontFamily').value = customization.fontFamily;
+
+    // Font size display
+    document.getElementById('fontSizeDisplay').textContent = fontSizeLabels[customization.fontSize];
+
+    // Accent color
+    document.querySelectorAll('.color-option[data-color]').forEach(option => {
+        option.classList.toggle('selected', option.dataset.color === customization.accentColor);
+    });
+
+    // Avatar border
+    document.getElementById('avatarBorderStyle').value = customization.avatarBorderStyle;
+    document.getElementById('avatarBorderWidth').value = customization.avatarBorderWidth;
+    document.getElementById('borderWidthDisplay').textContent = customization.avatarBorderWidth + 'px';
+
+    // Show/hide border color selector
+    const showBorderColor = customization.avatarBorderStyle !== 'none' && customization.avatarBorderStyle !== 'gradient';
+    document.getElementById('borderColorGroup').style.display = showBorderColor ? 'block' : 'none';
+
+    // Border color selection
+    if (showBorderColor) {
+        document.querySelectorAll('.color-option[data-border-color]').forEach(option => {
+            option.classList.toggle('selected', option.dataset.borderColor === customization.avatarBorderColor);
+        });
+    }
+}
+
+// Update font family
+function updateFontFamily() {
+    customization.fontFamily = document.getElementById('fontFamily').value;
+    applyCustomization();
+}
+
+// Adjust font size
+function adjustFontSize(delta) {
+    customization.fontSize = Math.max(0, Math.min(2, customization.fontSize + delta));
+    document.getElementById('fontSizeDisplay').textContent = fontSizeLabels[customization.fontSize];
+    applyCustomization();
+}
+
+// Select accent color
+function selectAccentColor(color) {
+    customization.accentColor = color;
+    document.querySelectorAll('.color-option[data-color]').forEach(option => {
+        option.classList.toggle('selected', option.dataset.color === color);
+    });
+    applyCustomization();
+}
+
+// Select border color
+function selectBorderColor(color) {
+    customization.avatarBorderColor = color;
+    document.querySelectorAll('.color-option[data-border-color]').forEach(option => {
+        option.classList.toggle('selected', option.dataset.borderColor === color);
+    });
+    updateAvatarBorderDisplay();
+}
+
+// Update avatar border
+function updateAvatarBorder() {
+    customization.avatarBorderStyle = document.getElementById('avatarBorderStyle').value;
+    customization.avatarBorderWidth = parseInt(document.getElementById('avatarBorderWidth').value);
+    document.getElementById('borderWidthDisplay').textContent = customization.avatarBorderWidth + 'px';
+
+    const showBorderColor = customization.avatarBorderStyle !== 'none' && customization.avatarBorderStyle !== 'gradient';
+    document.getElementById('borderColorGroup').style.display = showBorderColor ? 'block' : 'none';
+
+    updateAvatarBorderDisplay();
+}
+
+// Apply border to avatar preview
+function updateAvatarBorderDisplay() {
+    const avatarPreview = document.getElementById('avatarPreview');
+
+    if (customization.avatarBorderStyle === 'none' || customization.avatarBorderWidth === 0) {
+        avatarPreview.style.border = '';
+        avatarPreview.classList.remove('avatar-gradient-border');
+    } else if (customization.avatarBorderStyle === 'gradient') {
+        avatarPreview.classList.add('avatar-gradient-border');
+        avatarPreview.style.border = '';
+    } else {
+        avatarPreview.classList.remove('avatar-gradient-border');
+        avatarPreview.style.border = `${customization.avatarBorderWidth}px ${customization.avatarBorderStyle} ${customization.avatarBorderColor}`;
+    }
+}
+
+// Save customization
+function saveCustomization() {
+    localStorage.setItem('hal_customization', JSON.stringify(customization));
+    const messageDiv = document.getElementById('customizationMessage');
+    messageDiv.textContent = '✓ Customization saved successfully!';
+    setTimeout(() => {
+        messageDiv.textContent = '';
+    }, 3000);
+}
+
+// Helper function to adjust color brightness
+function adjustColorBrightness(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+    const G = Math.max(0, Math.min(255, (num >> 8 & 0x00FF) + amt));
+    const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+    return '#' + (0x1000000 + (R << 16) + (G << 8) + B).toString(16).slice(1);
+}
+
 // Initialize
 initTheme();
 loadAvatar();
+initMobileSidebar();
+loadCustomization();
