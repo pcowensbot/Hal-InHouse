@@ -168,6 +168,53 @@ async function apiCall(endpoint, options = {}) {
 let currentConversationId = null;
 let conversations = [];
 
+// Load sidebar avatar
+function loadSidebarAvatar() {
+    const sidebarAvatar = document.getElementById('sidebarAvatar');
+    const savedAvatar = localStorage.getItem('hal_avatar');
+    const customization = JSON.parse(localStorage.getItem('hal_customization') || '{}');
+
+    // Set avatar content
+    if (savedAvatar) {
+        sidebarAvatar.innerHTML = `<img src="${savedAvatar}" alt="Avatar">`;
+    } else {
+        sidebarAvatar.textContent = user.firstName.charAt(0).toUpperCase();
+    }
+
+    // Apply border customization
+    if (customization.avatarBorderStyle && customization.avatarBorderStyle !== 'none' && customization.avatarBorderWidth > 0) {
+        if (customization.avatarBorderStyle === 'gradient') {
+            sidebarAvatar.style.background = 'linear-gradient(45deg, #f093fb 0%, #f5576c 100%)';
+            sidebarAvatar.style.padding = `${customization.avatarBorderWidth}px`;
+            sidebarAvatar.style.border = '';
+        } else {
+            sidebarAvatar.style.border = `${customization.avatarBorderWidth}px ${customization.avatarBorderStyle} ${customization.avatarBorderColor || '#2563eb'}`;
+            sidebarAvatar.style.background = '';
+            sidebarAvatar.style.padding = '';
+        }
+    }
+
+    // Make avatar clickable to go to profile
+    sidebarAvatar.onclick = () => {
+        window.location.href = '/profile.html';
+    };
+    sidebarAvatar.title = 'Go to Profile Settings';
+}
+
+// Auto-collapse sidebar on mobile when clicking items
+function setupAutoCollapse() {
+    if (isMobile()) {
+        // Add click handler to conversation items
+        document.addEventListener('click', (e) => {
+            const conversationItem = e.target.closest('.conversation-item');
+            if (conversationItem && isMobile()) {
+                // Wait a bit for the click handler to fire, then close
+                setTimeout(() => closeSidebar(), 100);
+            }
+        });
+    }
+}
+
 // Initialize
 document.getElementById('userName').textContent = user.firstName;
 
@@ -182,8 +229,14 @@ initTheme();
 // Load customization
 loadCustomization();
 
+// Load sidebar avatar
+loadSidebarAvatar();
+
 // Initialize mobile sidebar behavior
 initMobileSidebar();
+
+// Setup auto-collapse on item click
+setupAutoCollapse();
 
 // Load conversations
 async function loadConversations() {

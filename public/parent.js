@@ -162,11 +162,57 @@ async function apiCall(endpoint, options = {}) {
     return data;
 }
 
+// Load sidebar avatar
+function loadSidebarAvatar() {
+    const sidebarAvatar = document.getElementById('sidebarAvatar');
+    const savedAvatar = localStorage.getItem('hal_avatar');
+    const customization = JSON.parse(localStorage.getItem('hal_customization') || '{}');
+
+    // Set avatar content
+    if (savedAvatar) {
+        sidebarAvatar.innerHTML = `<img src="${savedAvatar}" alt="Avatar">`;
+    } else {
+        sidebarAvatar.textContent = user.firstName.charAt(0).toUpperCase();
+    }
+
+    // Apply border customization
+    if (customization.avatarBorderStyle && customization.avatarBorderStyle !== 'none' && customization.avatarBorderWidth > 0) {
+        if (customization.avatarBorderStyle === 'gradient') {
+            sidebarAvatar.style.background = 'linear-gradient(45deg, #f093fb 0%, #f5576c 100%)';
+            sidebarAvatar.style.padding = `${customization.avatarBorderWidth}px`;
+            sidebarAvatar.style.border = '';
+        } else {
+            sidebarAvatar.style.border = `${customization.avatarBorderWidth}px ${customization.avatarBorderStyle} ${customization.avatarBorderColor || '#2563eb'}`;
+            sidebarAvatar.style.background = '';
+            sidebarAvatar.style.padding = '';
+        }
+    }
+
+    // Make avatar clickable to go to profile
+    sidebarAvatar.onclick = () => {
+        window.location.href = '/profile.html';
+    };
+    sidebarAvatar.title = 'Go to Profile Settings';
+}
+
+// Auto-collapse sidebar on mobile when clicking nav items
+function setupAutoCollapse() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            if (isMobile()) {
+                setTimeout(() => closeSidebar(), 100);
+            }
+        });
+    });
+}
+
 // Initialize
 document.getElementById('userName').textContent = user.firstName;
 initTheme();
 loadCustomization();
+loadSidebarAvatar();
 initMobileSidebar();
+setupAutoCollapse();
 
 // Tab switching
 function showTab(tabName) {

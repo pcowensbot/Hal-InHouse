@@ -408,8 +408,52 @@ function adjustColorBrightness(color, percent) {
     return '#' + (0x1000000 + (R << 16) + (G << 8) + B).toString(16).slice(1);
 }
 
+// Load sidebar avatar
+function loadSidebarAvatar() {
+    const sidebarAvatar = document.getElementById('sidebarAvatar');
+    const savedAvatar = localStorage.getItem('hal_avatar');
+    const customization = JSON.parse(localStorage.getItem('hal_customization') || '{}');
+
+    // Set avatar content
+    if (savedAvatar) {
+        sidebarAvatar.innerHTML = `<img src="${savedAvatar}" alt="Avatar">`;
+    } else {
+        sidebarAvatar.textContent = user.firstName.charAt(0).toUpperCase();
+    }
+
+    // Apply border customization
+    if (customization.avatarBorderStyle && customization.avatarBorderStyle !== 'none' && customization.avatarBorderWidth > 0) {
+        if (customization.avatarBorderStyle === 'gradient') {
+            sidebarAvatar.style.background = 'linear-gradient(45deg, #f093fb 0%, #f5576c 100%)';
+            sidebarAvatar.style.padding = `${customization.avatarBorderWidth}px`;
+            sidebarAvatar.style.border = '';
+        } else {
+            sidebarAvatar.style.border = `${customization.avatarBorderWidth}px ${customization.avatarBorderStyle} ${customization.avatarBorderColor || '#2563eb'}`;
+            sidebarAvatar.style.background = '';
+            sidebarAvatar.style.padding = '';
+        }
+    }
+
+    // Avatar is already on profile page, so just make it clickable for consistency
+    sidebarAvatar.style.cursor = 'default';
+    sidebarAvatar.title = 'Your Profile';
+}
+
+// Auto-collapse sidebar on mobile when clicking nav items
+function setupAutoCollapse() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            if (isMobile()) {
+                setTimeout(() => closeSidebar(), 100);
+            }
+        });
+    });
+}
+
 // Initialize
 initTheme();
 loadAvatar();
+loadSidebarAvatar();
 initMobileSidebar();
 loadCustomization();
+setupAutoCollapse();
