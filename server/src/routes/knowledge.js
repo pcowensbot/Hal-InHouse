@@ -1,6 +1,7 @@
 import express from 'express';
 import prisma from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
+import ollamaService from '../services/ollama.js';
 
 const router = express.Router();
 
@@ -542,6 +543,109 @@ router.post('/books/import', async (req, res) => {
   } catch (error) {
     console.error('Import book error:', error);
     res.status(500).json({ error: 'Failed to import book' });
+  }
+});
+
+// ========== AI Auto-Organize ==========
+
+// Auto-organize notes into book suggestions
+router.post('/auto-organize', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    // Get all user's notes
+    const notes = await prisma.starredNote.findMany({
+      where: { userId },
+      include: {
+        message: {
+          select: {
+            content: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (notes.length === 0) {
+      return res.json({ books: [], uncategorized: [], message: 'No notes to organize' });
+    }
+
+    if (notes.length < 3) {
+      return res.json({
+        books: [],
+        uncategorized: notes.map((_, idx) => idx),
+        message: 'Need at least 3 notes to suggest groupings',
+      });
+    }
+
+    // Analyze notes with local LLM
+    const suggestions = await ollamaService.analyzeNotesForBooks(notes);
+
+    // Map note indices back to actual note IDs
+    const booksWithIds = suggestions.books.map(book => ({
+      ...book,
+      notes: book.noteIndices.map(idx => notes[idx - 1]), // Convert 1-indexed to 0-indexed
+    }));
+
+    const uncategorizedNotes = suggestions.uncategorized?.map(idx => notes[idx - 1]) || [];
+
+    res.json({
+      books: booksWithIds,
+      uncategorized: uncategorizedNotes,
+      totalNotes: notes.length,
+    });
+  } catch (error) {
+    console.error('Auto-organize error:', error);
+    res.status(500).json({ error: 'Failed to auto-organize notes. ' + error.message });
+  }
+});
+
+// Create books from auto-organize suggestions
+router.post('/auto-organize/confirm', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { selectedBooks } = req.body; // Array of {title, description, noteIds: []}
+
+    if (!selectedBooks || !Array.isArray(selectedBooks)) {
+      return res.status(400).json({ error: 'Invalid request format' });
+    }
+
+    const createdBooks = [];
+
+    for (const bookData of selectedBooks) {
+      // Create the book
+      const book = await prisma.book.create({
+        data: {
+          userId,
+          name: bookData.title,
+          description: bookData.description,
+        },
+      });
+
+      // Assign notes to this book
+      if (bookData.noteIds && bookData.noteIds.length > 0) {
+        await prisma.starredNote.updateMany({
+          where: {
+            id: { in: bookData.noteIds },
+            userId, // Security: ensure user owns these notes
+          },
+          data: {
+            bookId: book.id,
+          },
+        });
+      }
+
+      createdBooks.push(book);
+    }
+
+    res.status(201).json({
+      success: true,
+      created: createdBooks.length,
+      books: createdBooks,
+    });
+  } catch (error) {
+    console.error('Confirm auto-organize error:', error);
+    res.status(500).json({ error: 'Failed to create books from suggestions' });
   }
 });
 

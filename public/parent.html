@@ -270,6 +270,83 @@ P.S. This code is for one-time use only, so keep it safe! 🔒</textarea>
                     </div>
                 </div>
 
+                <!-- GPU Service Assignment -->
+                <div class="admin-section">
+                    <h2>🎮 GPU Service Assignment</h2>
+                    <p class="subtitle">Assign GPUs to different services. Leave as "Auto" to let the system choose.</p>
+
+                    <div class="gpu-assignment-grid">
+                        <div class="gpu-service-card">
+                            <div class="service-header">
+                                <span class="service-icon">💬</span>
+                                <h3>Chat</h3>
+                            </div>
+                            <div class="form-group">
+                                <label for="chatGPU">Assigned GPU</label>
+                                <select id="chatGPU">
+                                    <option value="">Auto (System Choice)</option>
+                                    <option value="gpu0">GPU 0 (GTX 1050 - 2GB)</option>
+                                    <option value="gpu1">GPU 1 (GTX 1070 - 8GB)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="gpu-service-card">
+                            <div class="service-header">
+                                <span class="service-icon">🖼️</span>
+                                <h3>Image Generation</h3>
+                            </div>
+                            <div class="form-group">
+                                <label class="toggle-label">
+                                    <input type="checkbox" id="imageGenEnabled" onchange="toggleImageGenGPU()">
+                                    <span>Enable Image Generation</span>
+                                </label>
+                            </div>
+                            <div class="form-group" id="imageGenGPUGroup">
+                                <label for="imageGenGPU">Assigned GPU</label>
+                                <select id="imageGenGPU">
+                                    <option value="">Auto (System Choice)</option>
+                                    <option value="gpu0">GPU 0 (GTX 1050 - 2GB)</option>
+                                    <option value="gpu1">GPU 1 (GTX 1070 - 8GB)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="gpu-service-card">
+                            <div class="service-header">
+                                <span class="service-icon">📚</span>
+                                <h3>Knowledge Base Assistant</h3>
+                            </div>
+                            <div class="form-group">
+                                <label class="toggle-label">
+                                    <input type="checkbox" id="knowledgeBaseEnabled" onchange="toggleKnowledgeBaseGPU()">
+                                    <span>Enable KB Assistant</span>
+                                </label>
+                            </div>
+                            <div class="form-group" id="knowledgeBaseGPUGroup">
+                                <label for="knowledgeBaseGPU">Assigned GPU</label>
+                                <select id="knowledgeBaseGPU">
+                                    <option value="">Auto (System Choice)</option>
+                                    <option value="gpu0">GPU 0 (GTX 1050 - 2GB)</option>
+                                    <option value="gpu1">GPU 1 (GTX 1070 - 8GB)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gpu-notes">
+                        <p><strong>Note:</strong> GTX 1070 (8GB) is recommended for Knowledge Base Assistant and Image Generation.</p>
+                        <p>Assigning the same GPU to multiple services may cause performance issues.</p>
+                    </div>
+
+                    <div class="gpu-save-section">
+                        <button onclick="updateGPUAssignments()" class="btn btn-primary" id="gpuSaveBtn">
+                            💾 Save GPU Assignments
+                        </button>
+                        <span id="gpuSaveStatus" class="save-status"></span>
+                    </div>
+                </div>
+
                 <!-- Maintenance Mode -->
                 <div class="admin-section">
                     <h2>🧠 Maintenance Mode</h2>

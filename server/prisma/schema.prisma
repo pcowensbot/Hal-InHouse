@@ -78,6 +78,11 @@ model Settings {
   maintenanceEndHour    Int      @default(6) // 6 AM
   maintenanceGPUs       String   @default("both") // "gpu0", "gpu1", "both"
   maintenanceMessage    String?  @db.Text // Custom message for users
+  // GPU Assignment for services
+  chatGPU               String?  // "gpu0", "gpu1", null for auto
+  imageGenGPU           String?  // "gpu0", "gpu1", null for disabled/auto
+  knowledgeBaseGPU      String?  // "gpu0", "gpu1", null for auto
+  knowledgeBaseEnabled  Boolean  @default(true) // Enable/disable KB assistant
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

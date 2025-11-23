@@ -423,4 +423,81 @@ router.get('/maintenance/status', async (req, res) => {
   }
 });
 
+// ========== GPU Service Assignment ==========
+
+// Get all settings (including GPU assignments)
+router.get('/settings', async (req, res) => {
+  try {
+    const settings = await prisma.settings.findFirst();
+
+    if (!settings) {
+      return res.json({
+        defaultModel: 'llama3.1:8b',
+        imageGenEnabled: false,
+        knowledgeBaseEnabled: true,
+        chatGPU: null,
+        imageGenGPU: null,
+        knowledgeBaseGPU: null,
+      });
+    }
+
+    res.json({
+      defaultModel: settings.defaultModel,
+      imageGenEnabled: settings.imageGenEnabled,
+      knowledgeBaseEnabled: settings.knowledgeBaseEnabled,
+      chatGPU: settings.chatGPU,
+      imageGenGPU: settings.imageGenGPU,
+      knowledgeBaseGPU: settings.knowledgeBaseGPU,
+    });
+  } catch (error) {
+    console.error('Get settings error:', error);
+    res.status(500).json({ error: 'Failed to get settings' });
+  }
+});
+
+// Update GPU service assignments
+router.post('/settings/gpu', async (req, res) => {
+  try {
+    const {
+      chatGPU,
+      imageGenEnabled,
+      imageGenGPU,
+      knowledgeBaseEnabled,
+      knowledgeBaseGPU,
+    } = req.body;
+
+    const updateData = {};
+
+    // Update GPU assignments
+    if (chatGPU !== undefined) updateData.chatGPU = chatGPU;
+    if (imageGenGPU !== undefined) updateData.imageGenGPU = imageGenGPU;
+    if (knowledgeBaseGPU !== undefined) updateData.knowledgeBaseGPU = knowledgeBaseGPU;
+
+    // Update enable/disable flags
+    if (imageGenEnabled !== undefined) updateData.imageGenEnabled = imageGenEnabled;
+    if (knowledgeBaseEnabled !== undefined) updateData.knowledgeBaseEnabled = knowledgeBaseEnabled;
+
+    const settings = await prisma.settings.upsert({
+      where: { id: 1 },
+      update: updateData,
+      create: {
+        id: 1,
+        ...updateData,
+      },
+    });
+
+    res.json({
+      success: true,
+      chatGPU: settings.chatGPU,
+      imageGenEnabled: settings.imageGenEnabled,
+      imageGenGPU: settings.imageGenGPU,
+      knowledgeBaseEnabled: settings.knowledgeBaseEnabled,
+      knowledgeBaseGPU: settings.knowledgeBaseGPU,
+    });
+  } catch (error) {
+    console.error('Update GPU settings error:', error);
+    res.status(500).json({ error: 'Failed to update GPU settings' });
+  }
+});
+
 export default router;

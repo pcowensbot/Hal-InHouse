@@ -1,7 +1,7 @@
 # HAL In-House - Claude Context
 
-> **Last Updated:** 2025-11-22
-> **Version:** 1.1.0
+> **Last Updated:** 2025-11-23
+> **Version:** 1.2.0
 > **Status:** Production - Active Development
 
 ## 🎯 Project Vision
@@ -33,19 +33,25 @@ HAL is a multi-agent AI system designed for families, featuring a web interface,
 - ✅ Parent/admin user management with archive capability
 - ✅ Chat import from external platforms (Claude.ai and ChatGPT)
 - ✅ Headless browser scraping with bot detection bypass
+- ✅ Knowledge Base auto-organize with local AI (Llama 3.1 8B)
+- ✅ AI-powered note grouping and book suggestions
+- ✅ GPU service assignment controls (admin dashboard)
+- ✅ Multi-GPU management (GTX 1050 + GTX 1070)
+- ✅ Enhanced chat sidebar with compact button layout
+- ✅ Improved star button visibility (knowledge base integration)
 
 ### In Progress
-- 🔨 Knowledge Base UI implementation (backend complete, frontend pending)
-  - Phases 1-5 planned in detail
-  - Star button functional in chat
-  - Need to build full book/note organization interface
+- 🔨 Knowledge Base manual organization features
+  - Auto-organize complete and functional
+  - Need manual book creation/editing
+  - Need note moving and reorganization
 
 ### Next Priorities
-1. **Knowledge Base Phase 1**: Create basic UI for viewing starred notes and books
-2. **Knowledge Base Phase 2**: Implement book management (create, edit, delete)
-3. **Knowledge Base Phase 3**: Note organization and editing features
-4. Mobile responsiveness polish
-5. Parent dashboard integration for family knowledge sharing
+1. **Test Auto-Organize Feature**: Test with real data, verify AI grouping quality
+2. **Implement GPU Assignment Enforcement**: Make services actually use assigned GPUs
+3. **Knowledge Base Manual Management**: Create, edit, move notes between books
+4. **Knowledge Base Search**: Full-text search within notes
+5. **Export Features**: Export books to PDF/Markdown
 
 ## 🏗️ Tech Stack
 
@@ -135,6 +141,44 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - Socket.io for real-time updates
 
 ## 📝 Recent Sessions
+
+### Session 9 (2025-11-23 Early Morning) - Knowledge Base Auto-Organize & GPU Management
+- Implemented AI-powered auto-organize using local Llama 3.1 8B
+- Created comprehensive review UI for AI-suggested book groupings
+- Built GPU service assignment system for admin dashboard
+- Added manual save button with visual feedback for GPU settings
+- Reorganized chat sidebar: smaller buttons, better layout
+- Enhanced star button visibility with gold color and clear tooltips
+- Changed star tooltip to "Add to/Remove from Knowledge Base"
+
+**Major Features**:
+- Local AI analyzes starred notes and suggests topic-based books
+- User reviews and selects which suggested books to create
+- Admin can assign specific GPUs to chat, image gen, and KB assistant
+- Enable/disable controls for image generation and KB assistant
+- Visual save confirmation with success/error messages
+- Compact chat sidebar: title on line 1, actions + timestamp on line 2
+- White star (unstarred) and gold star (starred) with glow effects
+
+**Files Modified**:
+- `server/src/services/ollama.js` - Added analyzeNotesForBooks() method
+- `server/src/routes/knowledge.js` - Auto-organize endpoints
+- `server/src/routes/admin.js` - GPU settings endpoints
+- `server/prisma/schema.prisma` - Extended Settings model with GPU fields
+- `public/knowledge.html` - Auto-organize modal
+- `public/knowledge.js` - Auto-organize functionality
+- `public/parent.html` - GPU assignment UI
+- `public/parent.js` - GPU management functions
+- `public/chat.js` - Reorganized conversation items
+- `public/styles.css` - Styles for all new features
+
+**Technical Details**:
+- Uses Llama 3.1 8B (4.9GB) on GTX 1070 for analysis
+- Processing time: 10-30 seconds for 50+ notes
+- Completely local - no external API calls
+- GPU 0: GTX 1050 (2GB), GPU 1: GTX 1070 (8GB)
+
+**Commits**: (Pending)
 
 ### Session 8 (2025-11-22 Evening) - Chat Import Feature
 - Implemented chat import from Claude.ai and ChatGPT share links

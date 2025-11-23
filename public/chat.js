@@ -286,20 +286,22 @@ function renderConversations() {
              onclick="loadConversation('${conv.id}')">
             <div class="conversation-info">
                 <div class="conversation-title">${conv.title}</div>
-                <div class="conversation-date">${formatDate(conv.updatedAt)}</div>
-            </div>
-            <div class="conversation-actions">
-                <button class="rename-conversation-btn"
-                        onclick="event.stopPropagation(); renameConversation('${conv.id}')"
-                        title="Rename conversation">✏️</button>
-                <button class="star-conversation-btn ${conv.starred ? 'starred' : ''}"
-                        onclick="event.stopPropagation(); toggleStar('${conv.id}', ${!conv.starred})"
-                        title="${conv.starred ? 'Unstar' : 'Star'} conversation">
-                    ${conv.starred ? '⭐' : '☆'}
-                </button>
-                <button class="delete-conversation-btn"
-                        onclick="event.stopPropagation(); deleteConversation('${conv.id}')"
-                        title="Delete conversation">×</button>
+                <div class="conversation-meta">
+                    <div class="conversation-actions-inline">
+                        <button class="star-conversation-btn ${conv.starred ? 'starred' : ''}"
+                                onclick="event.stopPropagation(); toggleStar('${conv.id}', ${!conv.starred})"
+                                title="${conv.starred ? 'Remove from' : 'Add to'} Knowledge Base">
+                            ${conv.starred ? '⭐' : '☆'}
+                        </button>
+                        <button class="rename-conversation-btn"
+                                onclick="event.stopPropagation(); renameConversation('${conv.id}')"
+                                title="Rename conversation">✏️</button>
+                        <button class="delete-conversation-btn"
+                                onclick="event.stopPropagation(); deleteConversation('${conv.id}')"
+                                title="Delete conversation">×</button>
+                    </div>
+                    <div class="conversation-date">${formatDate(conv.updatedAt)}</div>
+                </div>
             </div>
         </div>
     `).join('');

@@ -928,6 +928,7 @@ async function loadAdminData() {
         loadHardwareInfo(),
         loadDiskUsage(),
         loadModels(),
+        loadGPUAssignments(),
         loadMaintenanceSettings(),
     ]);
 }
@@ -1468,6 +1469,95 @@ function downloadUserArchive(archiveData) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+}
+
+// ========== GPU Service Assignment ==========
+
+// Load GPU assignments
+async function loadGPUAssignments() {
+    try {
+        const settings = await apiCall('/api/admin/settings');
+
+        // Set GPU assignments
+        document.getElementById('chatGPU').value = settings.chatGPU || '';
+        document.getElementById('imageGenGPU').value = settings.imageGenGPU || '';
+        document.getElementById('knowledgeBaseGPU').value = settings.knowledgeBaseGPU || '';
+
+        // Set enable/disable toggles
+        document.getElementById('imageGenEnabled').checked = settings.imageGenEnabled || false;
+        document.getElementById('knowledgeBaseEnabled').checked = settings.knowledgeBaseEnabled !== false; // Default true
+
+        // Toggle GPU selects based on enabled state
+        const imageGenGPUGroup = document.getElementById('imageGenGPUGroup');
+        imageGenGPUGroup.style.display = settings.imageGenEnabled ? 'block' : 'none';
+
+        const knowledgeBaseGPUGroup = document.getElementById('knowledgeBaseGPUGroup');
+        knowledgeBaseGPUGroup.style.display = (settings.knowledgeBaseEnabled !== false) ? 'block' : 'none';
+    } catch (error) {
+        console.error('Failed to load GPU assignments:', error);
+    }
+}
+
+// Toggle GPU select visibility for Image Gen
+function toggleImageGenGPU() {
+    const imageGenEnabled = document.getElementById('imageGenEnabled').checked;
+    const imageGenGPUGroup = document.getElementById('imageGenGPUGroup');
+    imageGenGPUGroup.style.display = imageGenEnabled ? 'block' : 'none';
+}
+
+// Toggle GPU select visibility for Knowledge Base
+function toggleKnowledgeBaseGPU() {
+    const knowledgeBaseEnabled = document.getElementById('knowledgeBaseEnabled').checked;
+    const knowledgeBaseGPUGroup = document.getElementById('knowledgeBaseGPUGroup');
+    knowledgeBaseGPUGroup.style.display = knowledgeBaseEnabled ? 'block' : 'none';
+}
+
+// Update GPU assignments
+async function updateGPUAssignments() {
+    const saveBtn = document.getElementById('gpuSaveBtn');
+    const saveStatus = document.getElementById('gpuSaveStatus');
+    const imageGenEnabled = document.getElementById('imageGenEnabled').checked;
+    const knowledgeBaseEnabled = document.getElementById('knowledgeBaseEnabled').checked;
+
+    // Show saving state
+    saveBtn.disabled = true;
+    saveBtn.textContent = '💾 Saving...';
+    saveStatus.textContent = '';
+    saveStatus.className = 'save-status';
+
+    try {
+        await apiCall('/api/admin/settings/gpu', {
+            method: 'POST',
+            body: JSON.stringify({
+                chatGPU: document.getElementById('chatGPU').value || null,
+                imageGenEnabled,
+                imageGenGPU: imageGenEnabled ? (document.getElementById('imageGenGPU').value || null) : null,
+                knowledgeBaseEnabled,
+                knowledgeBaseGPU: knowledgeBaseEnabled ? (document.getElementById('knowledgeBaseGPU').value || null) : null,
+            }),
+        });
+
+        // Show success
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 Save GPU Assignments';
+        saveStatus.textContent = '✓ Saved successfully';
+        saveStatus.className = 'save-status success';
+
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+            saveStatus.textContent = '';
+        }, 3000);
+
+        console.log('GPU assignments updated successfully');
+    } catch (error) {
+        console.error('Failed to update GPU assignments:', error);
+
+        // Show error
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 Save GPU Assignments';
+        saveStatus.textContent = '✗ Failed to save: ' + error.message;
+        saveStatus.className = 'save-status error';
+    }
 }
 
 // Load overview on start

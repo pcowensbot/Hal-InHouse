@@ -665,3 +665,146 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     localStorage.removeItem('hal_user');
     window.location.href = '/';
 });
+
+// ========== Auto-Organize ==========
+
+let organizeSuggestions = null;
+
+function showAutoOrganizeModal() {
+    document.getElementById('autoOrganizeModal').style.display = 'flex';
+    document.getElementById('organizeLoading').style.display = 'none';
+    document.getElementById('organizeSuggestions').style.display = 'none';
+    document.getElementById('organizeError').textContent = '';
+    document.getElementById('startOrganizeBtn').style.display = 'inline-block';
+    document.getElementById('confirmOrganizeBtn').style.display = 'none';
+    organizeSuggestions = null;
+}
+
+function closeAutoOrganizeModal() {
+    document.getElementById('autoOrganizeModal').style.display = 'none';
+}
+
+async function startAutoOrganize() {
+    const loadingDiv = document.getElementById('organizeLoading');
+    const suggestionsDiv = document.getElementById('organizeSuggestions');
+    const errorDiv = document.getElementById('organizeError');
+    const startBtn = document.getElementById('startOrganizeBtn');
+    const confirmBtn = document.getElementById('confirmOrganizeBtn');
+
+    // Show loading
+    loadingDiv.style.display = 'block';
+    suggestionsDiv.style.display = 'none';
+    errorDiv.textContent = '';
+    startBtn.style.display = 'none';
+
+    try {
+        const result = await apiCall('/api/knowledge/auto-organize', {
+            method: 'POST',
+        });
+
+        if (result.message) {
+            // No notes or too few notes
+            errorDiv.textContent = result.message;
+            loadingDiv.style.display = 'none';
+            startBtn.style.display = 'inline-block';
+            return;
+        }
+
+        organizeSuggestions = result;
+        renderOrganizeSuggestions(result);
+
+        loadingDiv.style.display = 'none';
+        suggestionsDiv.style.display = 'block';
+        confirmBtn.style.display = 'inline-block';
+    } catch (error) {
+        console.error('Auto-organize error:', error);
+        errorDiv.textContent = error.message || 'Failed to analyze notes';
+        loadingDiv.style.display = 'none';
+        startBtn.style.display = 'inline-block';
+    }
+}
+
+function renderOrganizeSuggestions(suggestions) {
+    const listDiv = document.getElementById('suggestedBooksList');
+    const uncategorizedDiv = document.getElementById('uncategorizedSection');
+    const uncategorizedCount = document.getElementById('uncategorizedCount');
+
+    if (suggestions.books.length === 0) {
+        listDiv.innerHTML = '<p class="placeholder">No book groupings suggested. Try starring more notes on different topics!</p>';
+        return;
+    }
+
+    listDiv.innerHTML = suggestions.books.map((book, idx) => `
+        <div class="suggested-book-card">
+            <div class="suggested-book-header">
+                <input type="checkbox" id="book-${idx}" checked onchange="toggleBookSelection(${idx})">
+                <label for="book-${idx}">
+                    <strong>${escapeHtml(book.title)}</strong>
+                </label>
+                <span class="note-count">${book.notes.length} notes</span>
+            </div>
+            <div class="suggested-book-description">
+                ${escapeHtml(book.description)}
+            </div>
+            <div class="suggested-book-notes">
+                <details>
+                    <summary>View notes in this book</summary>
+                    <ul>
+                        ${book.notes.map(note => `
+                            <li>${escapeHtml(note.title || 'Untitled')}</li>
+                        `).join('')}
+                    </ul>
+                </details>
+            </div>
+        </div>
+    `).join('');
+
+    // Show uncategorized if any
+    if (suggestions.uncategorized && suggestions.uncategorized.length > 0) {
+        uncategorizedCount.textContent = suggestions.uncategorized.length;
+        uncategorizedDiv.style.display = 'block';
+    } else {
+        uncategorizedDiv.style.display = 'none';
+    }
+}
+
+function toggleBookSelection(idx) {
+    // Checkbox state is managed by HTML, we'll read it when confirming
+}
+
+async function confirmAutoOrganize() {
+    if (!organizeSuggestions) return;
+
+    const selectedBooks = [];
+
+    organizeSuggestions.books.forEach((book, idx) => {
+        const checkbox = document.getElementById(`book-${idx}`);
+        if (checkbox && checkbox.checked) {
+            selectedBooks.push({
+                title: book.title,
+                description: book.description,
+                noteIds: book.notes.map(n => n.id),
+            });
+        }
+    });
+
+    if (selectedBooks.length === 0) {
+        alert('Please select at least one book to create');
+        return;
+    }
+
+    try {
+        const result = await apiCall('/api/knowledge/auto-organize/confirm', {
+            method: 'POST',
+            body: JSON.stringify({ selectedBooks }),
+        });
+
+        closeAutoOrganizeModal();
+        await loadBooks();
+        await loadNotes();
+        alert(`✅ Created ${result.created} book(s) and organized your notes!`);
+    } catch (error) {
+        console.error('Confirm organize error:', error);
+        document.getElementById('organizeError').textContent = error.message || 'Failed to create books';
+    }
+}

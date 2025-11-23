@@ -68,6 +68,9 @@
                         <span class="brain-icon">🧠</span>
                         <span id="trainingCount">0</span>
                     </div>
+                    <button onclick="showAutoOrganizeModal()" class="btn btn-primary btn-sm" title="AI-powered organization">
+                        <span>🤖 Auto-Organize</span>
+                    </button>
                     <button onclick="showImportModal()" class="btn btn-secondary btn-sm" title="Import book from friend">
                         <span>📥 Import</span>
                     </button>
@@ -185,6 +188,44 @@
                 <div class="modal-actions">
                     <button type="button" onclick="closeImportModal()" class="btn btn-secondary">Cancel</button>
                     <button id="importBtn" onclick="confirmImport()" class="btn btn-primary" disabled>Import Book</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto-Organize Modal -->
+    <div id="autoOrganizeModal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>🤖 Auto-Organize with AI</h2>
+                <button onclick="closeAutoOrganizeModal()" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="organizeLoading" style="display: none; text-align: center; padding: 40px;">
+                    <div class="spinner"></div>
+                    <p>Analyzing your notes with local AI...</p>
+                    <p style="font-size: 0.9em; color: var(--text-secondary);">This may take 10-30 seconds</p>
+                </div>
+
+                <div id="organizeSuggestions" style="display: none;">
+                    <p style="margin-bottom: 20px;">AI analyzed your notes and suggests these book groupings. Select which ones to create:</p>
+
+                    <div id="suggestedBooksList" class="suggested-books-list">
+                        <!-- Suggestions will be loaded here -->
+                    </div>
+
+                    <div id="uncategorizedSection" style="display: none; margin-top: 20px; padding: 15px; background: var(--background); border-radius: 8px;">
+                        <h4>📄 Uncategorized Notes (<span id="uncategorizedCount">0</span>)</h4>
+                        <p style="font-size: 0.9em; color: var(--text-secondary);">These notes didn't fit into any clear topic group</p>
+                    </div>
+                </div>
+
+                <div id="organizeError" class="error"></div>
+
+                <div class="modal-actions">
+                    <button type="button" onclick="closeAutoOrganizeModal()" class="btn btn-secondary">Cancel</button>
+                    <button id="startOrganizeBtn" onclick="startAutoOrganize()" class="btn btn-primary">Analyze Notes</button>
+                    <button id="confirmOrganizeBtn" onclick="confirmAutoOrganize()" class="btn btn-primary" style="display: none;">Create Selected Books</button>
                 </div>
             </div>
         </div>
