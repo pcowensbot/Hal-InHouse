@@ -343,6 +343,7 @@ async function loadConversation(id) {
             if (msg.role === 'assistant') {
                 messageDiv.innerHTML = `
                     <div class="message-content">${formatMessage(msg.content)}</div>
+                    ${renderAttachments(msg.attachments)}
                     <div class="message-footer">
                         <div class="message-time">${new Date(msg.createdAt).toLocaleTimeString()}</div>
                         <button class="star-message-btn" onclick="starMessage('${msg.id}')" title="Save to Knowledge Base">⭐</button>
@@ -351,6 +352,7 @@ async function loadConversation(id) {
             } else {
                 messageDiv.innerHTML = `
                     <div class="message-content">${formatMessage(msg.content)}</div>
+                    ${renderAttachments(msg.attachments)}
                     <div class="message-time">${new Date(msg.createdAt).toLocaleTimeString()}</div>
                 `;
             }
@@ -546,6 +548,50 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// Render image attachments
+function renderAttachments(attachments) {
+    if (!attachments || attachments.length === 0) return '';
+
+    const images = attachments.filter(att => att.type === 'image');
+    if (images.length === 0) return '';
+
+    return `
+        <div class="message-attachments">
+            ${images.map(img => `
+                <img
+                    src="/uploads/imported-images/${img.filename}"
+                    alt="Imported image"
+                    class="message-image"
+                    onclick="openImageModal(this.src)"
+                    loading="lazy"
+                />
+            `).join('')}
+        </div>
+    `;
+}
+
+// Image modal functions
+function openImageModal(src) {
+    const modal = document.getElementById('imageModal');
+    const img = document.getElementById('imageModalImg');
+    img.src = src;
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent scrolling
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.remove('active');
+    document.body.style.overflow = ''; // Restore scrolling
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeImageModal();
+    }
+});
 
 // Format message with code blocks and inline code
 function formatMessage(text) {

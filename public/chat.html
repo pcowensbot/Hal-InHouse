@@ -182,6 +182,12 @@
         </div>
     </div>
 
+    <!-- Image Modal/Lightbox -->
+    <div id="imageModal" class="image-modal" onclick="closeImageModal()">
+        <button class="image-modal-close" onclick="closeImageModal()">&times;</button>
+        <img id="imageModalImg" src="" alt="Full size image" onclick="event.stopPropagation()">
+    </div>
+
     <script src="/chat.js"></script>
 </body>
 </html>

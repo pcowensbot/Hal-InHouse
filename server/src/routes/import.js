@@ -63,6 +63,7 @@ router.post('/chat', async (req, res) => {
             role: msg.role,
             content: msg.content,
             modelUsed: msg.role === 'assistant' ? platform : 'user',
+            attachments: msg.attachments || undefined, // Include image attachments if present
             createdAt: new Date(Date.now() + index * 1000), // Preserve order with timestamps
           }))
         }

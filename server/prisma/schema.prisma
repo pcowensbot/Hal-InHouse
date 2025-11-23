@@ -60,6 +60,7 @@ model Message {
   role           String        // "user" or "assistant"
   content        String        @db.Text
   imageUrl       String?       // For generated images
+  attachments    Json?         // Array of {type: 'image', filename: string, originalUrl: string, size: number}
   modelUsed      String        @default("llama3.1:8b")
   createdAt      DateTime      @default(now())
   starredNotes   StarredNote[]

@@ -1,7 +1,7 @@
 # HAL In-House - Claude Context
 
-> **Last Updated:** 2025-11-23
-> **Version:** 1.2.0
+> **Last Updated:** 2025-11-23 (Evening)
+> **Version:** 1.3.0
 > **Status:** Production - Active Development
 
 ## 🎯 Project Vision
@@ -33,12 +33,15 @@ HAL is a multi-agent AI system designed for families, featuring a web interface,
 - ✅ Parent/admin user management with archive capability
 - ✅ Chat import from external platforms (Claude.ai and ChatGPT)
 - ✅ Headless browser scraping with bot detection bypass
+- ✅ Image import from chat share links (automatic download and storage)
+- ✅ Image display in chat with lightbox/zoom functionality
 - ✅ Knowledge Base auto-organize with local AI (Llama 3.1 8B)
 - ✅ AI-powered note grouping and book suggestions
 - ✅ GPU service assignment controls (admin dashboard)
 - ✅ Multi-GPU management (GTX 1050 + GTX 1070)
 - ✅ Enhanced chat sidebar with compact button layout
 - ✅ Improved star button visibility (knowledge base integration)
+- ✅ Full disk expansion: 100GB → 3.6TB (3.4TB available)
 
 ### In Progress
 - 🔨 Knowledge Base manual organization features
@@ -47,11 +50,12 @@ HAL is a multi-agent AI system designed for families, featuring a web interface,
   - Need note moving and reorganization
 
 ### Next Priorities
-1. **Test Auto-Organize Feature**: Test with real data, verify AI grouping quality
-2. **Implement GPU Assignment Enforcement**: Make services actually use assigned GPUs
-3. **Knowledge Base Manual Management**: Create, edit, move notes between books
-4. **Knowledge Base Search**: Full-text search within notes
-5. **Export Features**: Export books to PDF/Markdown
+1. **Test Image Import**: Test with real Claude/ChatGPT chats containing images
+2. **Test Auto-Organize Feature**: Test with real data, verify AI grouping quality
+3. **Implement GPU Assignment Enforcement**: Make services actually use assigned GPUs
+4. **Knowledge Base Manual Management**: Create, edit, move notes between books
+5. **Knowledge Base Search**: Full-text search within notes
+6. **Export Features**: Export books to PDF/Markdown
 
 ## 🏗️ Tech Stack
 
@@ -122,6 +126,8 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 │   ├── chat.html    # Main chat interface
 │   ├── knowledge.html # Knowledge Base UI
 │   ├── team.html    # Team monitoring
+│   ├── uploads/     # User-uploaded content
+│   │   └── imported-images/  # Images from chat imports
 │   └── *.js/css     # Client-side code
 ├── database/        # SQLite files (gitignored)
 ├── logs/            # Application logs (gitignored)
@@ -141,6 +147,47 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - Socket.io for real-time updates
 
 ## 📝 Recent Sessions
+
+### Session 10 (2025-11-23 Evening) - Image Import & Disk Expansion
+- Expanded disk storage from 100GB to 3.6TB using LVM extend (live, no rebuild)
+- Implemented complete image import pipeline for chat imports
+- Added image extraction from Claude.ai and ChatGPT share links
+- Built automatic image download and storage system
+- Created image display with inline thumbnails and lightbox zoom
+- Added image modal with ESC/click-to-close functionality
+
+**Major Features**:
+- Images automatically downloaded during chat import (both platforms)
+- Stored in `/public/uploads/imported-images/` with UUID filenames
+- Database stores image metadata (filename, URL, size, type)
+- Inline thumbnails (300x300px max) with hover effects
+- Click to view full-size in dark overlay modal
+- Lazy loading for performance
+- Handles both regular URLs and base64 data images
+
+**Files Modified**:
+- `server/prisma/schema.prisma` - Added attachments JSON field to Message
+- `server/src/services/chatImporter.js` - Image download logic (downloadImage method)
+- `server/src/routes/import.js` - Save attachments during import
+- `public/chat.js` - renderAttachments(), image modal functions
+- `public/chat.html` - Image modal HTML structure
+- `public/styles.css` - Image thumbnail and modal styling
+- `public/uploads/.gitignore` - Exclude uploaded images from git
+
+**Storage Details**:
+- Original: 100GB LVM volume on 3.6TB partition
+- Expanded: Used `lvextend` + `resize2fs` to claim full 3.6TB
+- Result: 3.4TB available for images and data
+- No system rebuild required - done live
+
+**Technical Notes**:
+- Puppeteer downloads images using page.goto() for URLs
+- Base64 images decoded from data URIs
+- Image filtering excludes icons/avatars
+- UUID filenames prevent collisions
+- Images served as static files via Express
+
+**Next**: Test with real imports containing images
 
 ### Session 9 (2025-11-23 Early Morning) - Knowledge Base Auto-Organize & GPU Management
 - Implemented AI-powered auto-organize using local Llama 3.1 8B
