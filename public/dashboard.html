@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HAL - Parent Dashboard</title>
+    <title>HAL - Dashboard</title>
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
             <div class="sidebar-header">
                 <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">☰</button>
                 <div class="sidebar-avatar" id="sidebarAvatar"></div>
-                <p class="subtitle">Parent Dashboard</p>
+                <p class="subtitle">Dashboard</p>
             </div>
             <nav class="nav-menu">
                 <a href="#overview" class="nav-item active" onclick="showTab('overview')">
@@ -30,7 +30,15 @@
                 </a>
                 <a href="#users" class="nav-item" onclick="showTab('users')">
                     <span class="nav-icon">👥</span>
-                    <span class="nav-text">Family Members</span>
+                    <span class="nav-text">Members</span>
+                </a>
+                <a href="#groups" class="nav-item" onclick="showTab('groups')">
+                    <span class="nav-icon">🏢</span>
+                    <span class="nav-text">Groups</span>
+                </a>
+                <a href="#roles" class="nav-item" onclick="showTab('roles')">
+                    <span class="nav-icon">🛡️</span>
+                    <span class="nav-text">Roles</span>
                 </a>
                 <a href="#invites" class="nav-item" onclick="showTab('invites')">
                     <span class="nav-icon">✉️</span>
@@ -139,19 +147,130 @@
 
             <!-- Users Tab -->
             <div id="usersTab" class="tab-content">
-                <h1>👥 Family Members</h1>
+                <h1>👥 Members</h1>
+                <p class="subtitle">Manage users and their role assignments</p>
                 <div id="usersList" class="users-list">
                     <!-- Users will load here -->
+                </div>
+            </div>
+
+            <!-- Groups Tab -->
+            <div id="groupsTab" class="tab-content">
+                <h1>🏢 Groups</h1>
+                <p class="subtitle">Create groups for team collaboration and shared conversations</p>
+
+                <div class="group-creator">
+                    <h3>Create New Group</h3>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label>Group Name</label>
+                            <input type="text" id="newGroupName" placeholder="e.g., Marketing Team, Family, Project Alpha">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Color</label>
+                            <input type="color" id="newGroupColor" value="#3b82f6">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description (optional)</label>
+                        <input type="text" id="newGroupDescription" placeholder="Brief description of this group">
+                    </div>
+                    <button onclick="createGroup()" class="btn btn-primary">Create Group</button>
+                </div>
+
+                <h3>Existing Groups</h3>
+                <div id="groupsList" class="groups-list">
+                    <!-- Groups will load here -->
+                </div>
+            </div>
+
+            <!-- Roles Tab -->
+            <div id="rolesTab" class="tab-content">
+                <h1>🛡️ Roles & Permissions</h1>
+                <p class="subtitle">Define custom roles with specific permissions</p>
+
+                <div class="role-creator">
+                    <h3>Create New Role</h3>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label>Role Name</label>
+                            <input type="text" id="newRoleName" placeholder="e.g., Team Lead, Viewer, Contributor">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Color</label>
+                            <input type="color" id="newRoleColor" value="#6b7280">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="newRoleDescription" placeholder="What can this role do?">
+                    </div>
+                    <div class="permissions-grid">
+                        <label class="permission-toggle">
+                            <input type="checkbox" id="perm_canManageUsers">
+                            <span>Manage Users</span>
+                        </label>
+                        <label class="permission-toggle">
+                            <input type="checkbox" id="perm_canManageGroups">
+                            <span>Manage Groups</span>
+                        </label>
+                        <label class="permission-toggle">
+                            <input type="checkbox" id="perm_canManageRoles">
+                            <span>Manage Roles</span>
+                        </label>
+                        <label class="permission-toggle">
+                            <input type="checkbox" id="perm_canViewAllConvos">
+                            <span>View All Conversations</span>
+                        </label>
+                        <label class="permission-toggle">
+                            <input type="checkbox" id="perm_canManageSystem">
+                            <span>System Admin</span>
+                        </label>
+                        <label class="permission-toggle">
+                            <input type="checkbox" id="perm_canCreateInvites">
+                            <span>Create Invites</span>
+                        </label>
+                        <label class="permission-toggle">
+                            <input type="checkbox" id="perm_canDeleteConvos">
+                            <span>Delete Conversations</span>
+                        </label>
+                    </div>
+                    <button onclick="createRole()" class="btn btn-primary">Create Role</button>
+                </div>
+
+                <h3>Existing Roles</h3>
+                <div id="rolesList" class="roles-list">
+                    <!-- Roles will load here -->
                 </div>
             </div>
 
             <!-- Invites Tab -->
             <div id="invitesTab" class="tab-content">
                 <h1>✉️ Invite Codes</h1>
-                <p class="subtitle">Generate invite codes for new family members</p>
+                <p class="subtitle">Generate invite codes for new members with pre-assigned roles</p>
 
                 <div class="invite-generator">
                     <h3>Generate New Invite Code</h3>
+                    <div class="form-group">
+                        <label>Role Assignment <span class="required">*</span></label>
+                        <select id="inviteRoleSelect" required>
+                            <option value="">Select a role...</option>
+                            <!-- Roles loaded dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Auto-Join Group (optional)</label>
+                        <select id="inviteGroupSelect">
+                            <option value="">No group assignment</option>
+                            <!-- Groups loaded dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group" id="groupAdminToggle" style="display: none;">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="inviteMakeGroupAdmin">
+                            <span>Make Group Admin</span>
+                        </label>
+                    </div>
                     <div class="form-group">
                         <label>Expires In (days, optional)</label>
                         <input type="number" id="inviteExpireDays" placeholder="Leave empty for no expiration" min="1" max="365">
@@ -640,6 +759,276 @@ P.S. This code is for one-time use only, so keep it safe! 🔒</textarea>
         </div>
     </div>
 
-    <script src="/parent.js?v=6"></script>
+    <!-- Group Details Modal -->
+    <div id="groupDetailsModal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="groupDetailsTitle">Group Details</h2>
+                <button onclick="closeGroupDetails()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="groupMembers" class="group-members-list">
+                    <!-- Members will load here -->
+                </div>
+                <h3>Add Member</h3>
+                <div class="add-member-form">
+                    <select id="addMemberSelect">
+                        <option value="">Select a user...</option>
+                    </select>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="addMemberAsAdmin">
+                        <span>Group Admin</span>
+                    </label>
+                    <button onclick="addMemberToGroup()" class="btn btn-primary btn-sm">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Role/Groups Modal -->
+    <div id="userEditModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="userEditTitle">Edit User</h2>
+                <button onclick="closeUserEdit()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="userEditRole">
+                        <!-- Roles loaded dynamically -->
+                    </select>
+                </div>
+                <h3>Group Memberships</h3>
+                <div id="userGroupsList" class="user-groups-list">
+                    <!-- User's groups will load here -->
+                </div>
+                <div class="modal-buttons">
+                    <button onclick="saveUserChanges()" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Invite Modal -->
+    <div id="editInviteModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Invite Code</h2>
+                <button onclick="closeEditInvite()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Assigned Role</label>
+                    <select id="editInviteRole">
+                        <!-- Roles loaded dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Auto-Join Group</label>
+                    <select id="editInviteGroup" onchange="onEditInviteGroupChange()">
+                        <!-- Groups loaded dynamically -->
+                    </select>
+                </div>
+                <div class="form-group" id="editGroupAdminToggle" style="display: none;">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="editInviteGroupAdmin">
+                        <span>Make Group Admin</span>
+                    </label>
+                </div>
+                <div class="modal-buttons">
+                    <button onclick="closeEditInvite()" class="btn btn-secondary">Cancel</button>
+                    <button onclick="saveEditInvite()" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device History Modal -->
+    <div id="deviceHistoryModal" class="modal" style="display: none;">
+        <div class="modal-content modal-fullscreen">
+            <div class="modal-header">
+                <h2>📜 API History: <span id="historyDeviceName"></span></h2>
+                <button onclick="closeDeviceHistory()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Filters -->
+                <div class="history-filters">
+                    <div class="filter-row">
+                        <div class="form-group">
+                            <label>Search</label>
+                            <input type="text" id="historySearch" placeholder="Search prompts, responses..." onkeyup="if(event.key==='Enter') loadDeviceHistory()">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="historyStatus" onchange="loadDeviceHistory()">
+                                <option value="">All</option>
+                                <option value="success">Success (2xx/3xx)</option>
+                                <option value="error">Error (4xx/5xx)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <input type="date" id="historyStartDate" onchange="loadDeviceHistory()">
+                        </div>
+                        <div class="form-group">
+                            <label>End Date</label>
+                            <input type="date" id="historyEndDate" onchange="loadDeviceHistory()">
+                        </div>
+                        <div class="form-group">
+                            <label>Sort By</label>
+                            <select id="historySortBy" onchange="loadDeviceHistory()">
+                                <option value="createdAt">Date</option>
+                                <option value="endpoint">Endpoint</option>
+                                <option value="status">Status</option>
+                                <option value="durationMs">Duration</option>
+                                <option value="model">Model</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Order</label>
+                            <select id="historySortOrder" onchange="loadDeviceHistory()">
+                                <option value="desc">Newest First</option>
+                                <option value="asc">Oldest First</option>
+                            </select>
+                        </div>
+                        <div class="form-group filter-actions">
+                            <button onclick="loadDeviceHistory()" class="btn btn-primary btn-sm">Search</button>
+                            <button onclick="clearDeviceHistory()" class="btn btn-secondary btn-sm">Clear History</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Table -->
+                <div class="history-table-container">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Endpoint</th>
+                                <th>Model</th>
+                                <th>Prompt</th>
+                                <th>Response</th>
+                                <th>Status</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr><td colspan="7" class="placeholder">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div id="historyPagination" class="history-pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Detail Modal -->
+    <div id="logDetailModal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Request Details</h2>
+                <button onclick="closeLogDetail()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="log-detail-grid">
+                    <div class="log-detail-item">
+                        <label>Time</label>
+                        <span id="logDetailTime"></span>
+                    </div>
+                    <div class="log-detail-item">
+                        <label>Endpoint</label>
+                        <span id="logDetailEndpoint"></span>
+                    </div>
+                    <div class="log-detail-item">
+                        <label>Model</label>
+                        <span id="logDetailModel"></span>
+                    </div>
+                    <div class="log-detail-item">
+                        <label>Status</label>
+                        <span id="logDetailStatus"></span>
+                    </div>
+                    <div class="log-detail-item">
+                        <label>Duration</label>
+                        <span id="logDetailDuration"></span>
+                    </div>
+                    <div class="log-detail-item">
+                        <label>Tokens</label>
+                        <span id="logDetailTokens"></span>
+                    </div>
+                </div>
+                <div class="log-detail-section">
+                    <label>Prompt / Input</label>
+                    <pre id="logDetailPrompt" class="log-detail-content"></pre>
+                </div>
+                <div class="log-detail-section">
+                    <label>Response / Output</label>
+                    <pre id="logDetailResponse" class="log-detail-content"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Limits Modal -->
+    <div id="apiLimitsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📊 API Limits: <span id="apiLimitsUserName"></span></h2>
+                <button onclick="closeApiLimits()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="api-limits-section">
+                    <h3>Set Limits</h3>
+                    <p class="subtitle">Leave empty for unlimited. Set to 0 to block all API access.</p>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Daily Limit</label>
+                            <input type="number" id="apiLimitDaily" min="0" placeholder="Unlimited">
+                        </div>
+                        <div class="form-group">
+                            <label>Monthly Limit</label>
+                            <input type="number" id="apiLimitMonthly" min="0" placeholder="Unlimited">
+                        </div>
+                    </div>
+
+                    <button onclick="saveApiLimits()" class="btn btn-primary">Save Limits</button>
+                </div>
+
+                <div class="api-limits-section">
+                    <h3>Current Usage</h3>
+
+                    <div class="usage-stats">
+                        <div class="usage-stat">
+                            <label>Today</label>
+                            <span id="apiUsageDaily">-</span>
+                            <button onclick="resetApiUsage('daily')" class="btn btn-sm btn-secondary">Reset</button>
+                        </div>
+                        <div class="usage-stat">
+                            <label>This Month</label>
+                            <span id="apiUsageMonthly">-</span>
+                            <button onclick="resetApiUsage('monthly')" class="btn btn-sm btn-secondary">Reset</button>
+                        </div>
+                    </div>
+
+                    <div class="reset-times">
+                        <small>Daily reset: <span id="apiResetDaily">-</span></small>
+                        <small>Monthly reset: <span id="apiResetMonthly">-</span></small>
+                    </div>
+                </div>
+
+                <div class="api-limits-section">
+                    <h3>Devices</h3>
+                    <div id="apiLimitsDevices">
+                        <!-- Device info will load here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/dashboard.js?v=5"></script>
 </body>
 </html>

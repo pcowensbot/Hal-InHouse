@@ -17,9 +17,17 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password required' });
     }
 
-    // Find user
+    // Find user with custom role and group memberships
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
+      include: {
+        customRole: true,
+        groupMemberships: {
+          include: {
+            group: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -37,9 +45,25 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT
+    // Build permissions object from custom role
+    const permissions = user.customRole ? {
+      canManageUsers: user.customRole.canManageUsers,
+      canManageGroups: user.customRole.canManageGroups,
+      canManageRoles: user.customRole.canManageRoles,
+      canViewAllConvos: user.customRole.canViewAllConvos,
+      canManageSystem: user.customRole.canManageSystem,
+      canCreateInvites: user.customRole.canCreateInvites,
+      canDeleteConvos: user.customRole.canDeleteConvos,
+    } : {};
+
+    // Generate JWT with enhanced role info
     const token = jwt.sign(
-      { userId: user.id, role: user.role },
+      {
+        userId: user.id,
+        role: user.role, // Legacy role for backwards compat
+        roleId: user.roleId,
+        isSystemAdmin: user.isSystemAdmin,
+      },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
@@ -50,8 +74,22 @@ router.post('/login', async (req, res) => {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
-        role: user.role,
+        role: user.role, // Legacy
+        isSystemAdmin: user.isSystemAdmin,
+        customRole: user.customRole ? {
+          id: user.customRole.id,
+          name: user.customRole.name,
+          color: user.customRole.color,
+        } : null,
+        permissions,
         avatar: user.avatar,
+        groups: user.groupMemberships.map(gm => ({
+          id: gm.group.id,
+          name: gm.group.name,
+          color: gm.group.color,
+          isGroupAdmin: gm.isGroupAdmin,
+          canViewAll: gm.canViewAll,
+        })),
       },
     });
   } catch (error) {
@@ -63,15 +101,19 @@ router.post('/login', async (req, res) => {
 // Signup (requires invite code)
 router.post('/signup', async (req, res) => {
   try {
-    const { inviteCode, email, password, firstName, role } = req.body;
+    const { inviteCode, email, password, firstName } = req.body;
 
     if (!inviteCode || !email || !password || !firstName) {
       return res.status(400).json({ error: 'All fields including invite code are required' });
     }
 
-    // Verify invite code
+    // Verify invite code with role and group info
     const invite = await prisma.inviteCode.findUnique({
       where: { code: inviteCode },
+      include: {
+        assignedRole: true,
+        assignedGroup: true,
+      },
     });
 
     if (!invite) {
@@ -102,17 +144,40 @@ router.post('/signup', async (req, res) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Check if this is the first user (should be SUPER_ADMIN)
+    // Check if this is the first user (should be system admin)
     const userCount = await prisma.user.count();
-    const userRole = userCount === 0 ? 'SUPER_ADMIN' : (role || 'CHILD');
+    const isFirstUser = userCount === 0;
 
-    // Create user and mark invite as used
+    // Get the role to assign
+    let roleId = invite.roleId;
+    if (!roleId) {
+      // Fall back to Member role if no role specified on invite
+      const memberRole = await prisma.customRole.findUnique({
+        where: { name: 'Member' },
+      });
+      roleId = memberRole?.id;
+    }
+
+    // Get admin role for first user
+    if (isFirstUser) {
+      const adminRole = await prisma.customRole.findUnique({
+        where: { name: 'Admin' },
+      });
+      roleId = adminRole?.id;
+    }
+
+    // Create user with new role system
     const user = await prisma.user.create({
       data: {
         email: email.toLowerCase(),
         passwordHash,
         firstName,
-        role: userRole,
+        role: isFirstUser ? 'SUPER_ADMIN' : 'MEMBER', // Legacy field
+        roleId,
+        isSystemAdmin: isFirstUser,
+      },
+      include: {
+        customRole: true,
       },
     });
 
@@ -121,13 +186,52 @@ router.post('/signup', async (req, res) => {
       where: { id: invite.id },
       data: {
         usedAt: new Date(),
-        usedBy: user.id,
+        usedById: user.id,
       },
     });
 
+    // Add user to group if specified on invite
+    if (invite.groupId) {
+      await prisma.groupMember.create({
+        data: {
+          userId: user.id,
+          groupId: invite.groupId,
+          isGroupAdmin: invite.makeGroupAdmin,
+          canViewAll: invite.makeGroupAdmin, // Group admins can view all by default
+        },
+      });
+    }
+
+    // Fetch user with groups for response
+    const userWithGroups = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        customRole: true,
+        groupMemberships: {
+          include: { group: true },
+        },
+      },
+    });
+
+    // Build permissions
+    const permissions = userWithGroups.customRole ? {
+      canManageUsers: userWithGroups.customRole.canManageUsers,
+      canManageGroups: userWithGroups.customRole.canManageGroups,
+      canManageRoles: userWithGroups.customRole.canManageRoles,
+      canViewAllConvos: userWithGroups.customRole.canViewAllConvos,
+      canManageSystem: userWithGroups.customRole.canManageSystem,
+      canCreateInvites: userWithGroups.customRole.canCreateInvites,
+      canDeleteConvos: userWithGroups.customRole.canDeleteConvos,
+    } : {};
+
     // Generate JWT
     const token = jwt.sign(
-      { userId: user.id, role: user.role },
+      {
+        userId: user.id,
+        role: user.role,
+        roleId: user.roleId,
+        isSystemAdmin: user.isSystemAdmin,
+      },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
@@ -135,11 +239,25 @@ router.post('/signup', async (req, res) => {
     res.status(201).json({
       token,
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        role: user.role,
-        avatar: user.avatar,
+        id: userWithGroups.id,
+        email: userWithGroups.email,
+        firstName: userWithGroups.firstName,
+        role: userWithGroups.role,
+        isSystemAdmin: userWithGroups.isSystemAdmin,
+        customRole: userWithGroups.customRole ? {
+          id: userWithGroups.customRole.id,
+          name: userWithGroups.customRole.name,
+          color: userWithGroups.customRole.color,
+        } : null,
+        permissions,
+        avatar: userWithGroups.avatar,
+        groups: userWithGroups.groupMemberships.map(gm => ({
+          id: gm.group.id,
+          name: gm.group.name,
+          color: gm.group.color,
+          isGroupAdmin: gm.isGroupAdmin,
+          canViewAll: gm.canViewAll,
+        })),
       },
     });
   } catch (error) {

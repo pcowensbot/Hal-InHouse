@@ -1,7 +1,7 @@
 # HAL In-House - Claude Context
 
-> **Last Updated:** 2025-11-23 (Evening)
-> **Version:** 1.3.0
+> **Last Updated:** 2025-11-29
+> **Version:** 1.4.0
 > **Status:** Production - Active Development
 
 ## 🎯 Project Vision
@@ -42,6 +42,13 @@ HAL is a multi-agent AI system designed for families, featuring a web interface,
 - ✅ Enhanced chat sidebar with compact button layout
 - ✅ Improved star button visibility (knowledge base integration)
 - ✅ Full disk expansion: 100GB → 3.6TB (3.4TB available)
+- ✅ Role-based access control with custom roles
+- ✅ Group management for organizing users
+- ✅ Device API with authentication keys
+- ✅ API rate limiting (daily/monthly per user)
+- ✅ Device API history with search/sort/filter
+- ✅ Collapsible activated invite codes section
+- ✅ Renamed parent dashboard to just "Dashboard"
 
 ### In Progress
 - 🔨 Knowledge Base manual organization features
@@ -147,6 +154,51 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - Socket.io for real-time updates
 
 ## 📝 Recent Sessions
+
+### Session 12 (2025-11-29) - User Management Rework & API Limits
+
+Major overhaul of user management system with new features:
+
+**User Management:**
+- Renamed parent.html/parent.js → dashboard.html/dashboard.js
+- Changed "Parent Dashboard" title to just "Dashboard"
+- Added role-based access control with custom roles
+- Added group management for organizing family members
+- Added editable invite codes (can change role after creation)
+- Collapsible "Activated Codes" section for used invite codes
+
+**Device API System:**
+- Device API keys for external integrations
+- API rate limiting (daily/monthly limits per user)
+- API usage tracking with DeviceApiLog model
+- Searchable/sortable/filterable API history modal
+- Rate limit enforcement in /api/llm/chat and /api/llm/generate
+
+**Database Changes:**
+- Added DeviceApiLog model for tracking API requests
+- Added API limit fields to User model (apiLimitDaily, apiLimitMonthly, etc.)
+- Added CustomRole, Group, GroupMember models
+- Fixed InviteCode model to match database structure
+
+**Files Modified:**
+- `public/dashboard.html` - New name, new modals (edit invite, API history, API limits)
+- `public/dashboard.js` - New name, new functions for all features
+- `public/styles.css` - Collapsible sections, history table, API limits modal
+- `server/prisma/schema.prisma` - DeviceApiLog, User API fields, new models
+- `server/src/routes/llm.js` - Rate limiting, request logging
+- `server/src/routes/parent.js` - API limits endpoints, invite edit
+- `server/src/routes/devices.js` - Device history endpoints
+
+**Commits**: (This commit)
+
+### Session 11 (2025-11-25) - GitHub Cleanup
+- Rewrote README.md with all new features and correct install instructions
+- Updated hardware requirements (8GB+ VRAM GPU required, second GPU optional)
+- Fixed clone URL to github.com/pcowensbot/Hal-InHouse
+- Verified .gitignore properly excludes session logs but keeps context system files
+- Renamed .CLAUDE.md to CLAUDE.md
+
+**Commits**: `bb91e40`, `d4a9ec2`
 
 ### Session 10 (2025-11-23 Evening) - Image Import & Disk Expansion
 - Expanded disk storage from 100GB to 3.6TB using LVM extend (live, no rebuild)

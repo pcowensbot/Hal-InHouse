@@ -27,6 +27,8 @@ export const authenticateToken = (req, res, next) => {
       id: decoded.userId,  // Map userId to id for consistency with routes
       userId: decoded.userId,  // Keep for backwards compatibility
       role: decoded.role,
+      roleId: decoded.roleId,
+      isSystemAdmin: decoded.isSystemAdmin,
     };
 
     next();
@@ -34,14 +36,39 @@ export const authenticateToken = (req, res, next) => {
 };
 
 /**
- * Middleware to check if user is a PARENT
+ * Middleware to check if user has admin/management access
+ * Works with both legacy roles (PARENT, SUPER_ADMIN) and new permission system
  * Must be used after authenticateToken
  */
-export const requireParent = (req, res, next) => {
-  if (req.user.role !== 'PARENT') {
-    return res.status(403).json({ error: 'Parent access required' });
+export const requireParent = async (req, res, next) => {
+  try {
+    // Legacy role check
+    if (req.user.role === 'PARENT' || req.user.role === 'SUPER_ADMIN') {
+      return next();
+    }
+
+    // System admin check
+    if (req.user.isSystemAdmin) {
+      return next();
+    }
+
+    // Check new permission system
+    if (req.user.roleId) {
+      const role = await prisma.customRole.findUnique({
+        where: { id: req.user.roleId },
+      });
+
+      // Allow if user has management permissions
+      if (role && (role.canManageUsers || role.canManageGroups || role.canManageSystem)) {
+        return next();
+      }
+    }
+
+    return res.status(403).json({ error: 'Admin access required' });
+  } catch (error) {
+    console.error('Permission check error:', error);
+    res.status(500).json({ error: 'Permission check failed' });
   }
-  next();
 };
 
 /**

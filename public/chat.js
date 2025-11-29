@@ -332,6 +332,36 @@ async function loadConversation(id) {
         document.getElementById('welcomeMessage').style.display = 'none';
         document.getElementById('inputArea').style.display = 'block';
 
+        // Show share button only for owned conversations
+        const shareBtn = document.getElementById('shareBtn');
+        const sharedBadges = document.getElementById('sharedBadges');
+
+        if (conversation.isOwned) {
+            shareBtn.style.display = 'inline-flex';
+            // Don't disable input for owned convos
+            document.getElementById('messageInput').disabled = false;
+        } else {
+            shareBtn.style.display = 'none';
+            // Disable input for shared convos (read-only)
+            document.getElementById('messageInput').disabled = true;
+            document.getElementById('messageInput').placeholder = 'This is a shared conversation (read-only)';
+        }
+
+        // Show shared badges
+        if (conversation.sharedWith && conversation.sharedWith.length > 0) {
+            sharedBadges.style.display = 'flex';
+            sharedBadges.innerHTML = conversation.sharedWith.map(s =>
+                `<span class="shared-badge" style="background: ${s.group.color || '#3b82f6'};">${s.group.name}</span>`
+            ).join('');
+        } else {
+            sharedBadges.style.display = 'none';
+        }
+
+        // Show owner info for shared convos
+        if (conversation.isShared && conversation.user) {
+            document.getElementById('chatTitle').textContent = `${conversation.title} (from ${conversation.user.firstName})`;
+        }
+
         const messagesDiv = document.getElementById('messages');
         messagesDiv.innerHTML = '';
 
@@ -532,7 +562,7 @@ document.getElementById('profileBtn').addEventListener('click', () => {
 
 // Dashboard button (for parents)
 document.getElementById('dashboardBtn')?.addEventListener('click', () => {
-    window.location.href = '/parent.html';
+    window.location.href = '/dashboard.html';
 });
 
 // Logout
@@ -803,6 +833,106 @@ document.getElementById('importForm').addEventListener('submit', async (e) => {
 document.getElementById('importModal').addEventListener('click', (e) => {
     if (e.target.id === 'importModal') {
         closeImportModal();
+    }
+});
+
+// ===== CONVERSATION SHARING FUNCTIONALITY =====
+
+// Open share modal
+async function openShareModal() {
+    if (!currentConversationId) return;
+
+    try {
+        // Get current conversation details and user's groups
+        const [conversation, myGroups] = await Promise.all([
+            apiCall(`/api/chat/conversations/${currentConversationId}`),
+            apiCall('/api/chat/my-groups'),
+        ]);
+
+        // Current shares
+        const sharedGroupsList = document.getElementById('sharedGroupsList');
+        if (conversation.sharedWith && conversation.sharedWith.length > 0) {
+            sharedGroupsList.innerHTML = conversation.sharedWith.map(s => `
+                <div class="shared-group-item">
+                    <span class="shared-badge" style="background: ${s.group.color || '#3b82f6'};">${s.group.name}</span>
+                    <button onclick="unshareFromGroup('${s.group.id}')" class="btn btn-sm btn-danger">Remove</button>
+                </div>
+            `).join('');
+        } else {
+            sharedGroupsList.innerHTML = '<p class="placeholder">Not shared with any groups yet</p>';
+        }
+
+        // Available groups to share with (exclude already shared)
+        const sharedGroupIds = (conversation.sharedWith || []).map(s => s.group.id);
+        const availableGroups = myGroups.filter(g => !sharedGroupIds.includes(g.id));
+
+        const availableGroupsList = document.getElementById('availableGroupsList');
+        if (availableGroups.length > 0) {
+            availableGroupsList.innerHTML = availableGroups.map(g => `
+                <div class="available-group-item">
+                    <span class="shared-badge" style="background: ${g.color || '#3b82f6'};">${g.name}</span>
+                    <button onclick="shareWithGroup('${g.id}')" class="btn btn-sm btn-primary">Share</button>
+                </div>
+            `).join('');
+        } else if (myGroups.length === 0) {
+            availableGroupsList.innerHTML = '<p class="placeholder">You are not a member of any groups</p>';
+        } else {
+            availableGroupsList.innerHTML = '<p class="placeholder">Already shared with all your groups</p>';
+        }
+
+        document.getElementById('shareModal').style.display = 'flex';
+    } catch (error) {
+        console.error('Failed to load sharing info:', error);
+        alert('Failed to load sharing options: ' + error.message);
+    }
+}
+
+// Close share modal
+function closeShareModal() {
+    document.getElementById('shareModal').style.display = 'none';
+}
+
+// Share with a group
+async function shareWithGroup(groupId) {
+    try {
+        await apiCall(`/api/chat/conversations/${currentConversationId}/share`, {
+            method: 'POST',
+            body: JSON.stringify({ groupId }),
+        });
+
+        // Refresh the modal
+        openShareModal();
+
+        // Reload conversation to update badges
+        loadConversation(currentConversationId);
+    } catch (error) {
+        console.error('Failed to share:', error);
+        alert('Failed to share: ' + error.message);
+    }
+}
+
+// Unshare from a group
+async function unshareFromGroup(groupId) {
+    try {
+        await apiCall(`/api/chat/conversations/${currentConversationId}/share/${groupId}`, {
+            method: 'DELETE',
+        });
+
+        // Refresh the modal
+        openShareModal();
+
+        // Reload conversation to update badges
+        loadConversation(currentConversationId);
+    } catch (error) {
+        console.error('Failed to unshare:', error);
+        alert('Failed to unshare: ' + error.message);
+    }
+}
+
+// Close share modal on background click
+document.getElementById('shareModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'shareModal') {
+        closeShareModal();
     }
 });
 

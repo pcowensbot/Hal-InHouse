@@ -45,6 +45,13 @@ HAL is a self-hosted AI platform designed for families who want the benefits of 
 - **Archive user data** before deletion
 - **GPU assignment controls** for multi-GPU systems
 
+### User Management
+- **Role-based access control** with custom roles
+- **Group management** for organizing family members
+- **API rate limiting** - set daily/monthly limits per user
+- **Device API keys** for external integrations
+- **API usage tracking** with searchable history
+
 ### Personalization
 - **User avatars** stored in database
 - **18 font choices** across 3 categories (Professional, Easy to Read, Fun)
@@ -217,7 +224,7 @@ hal/
 ├── public/                  # Frontend static files
 │   ├── index.html           # Login page
 │   ├── chat.html            # Chat interface
-│   ├── parent.html          # Parent dashboard
+│   ├── dashboard.html       # Admin dashboard
 │   ├── knowledge.html       # Knowledge Base
 │   ├── profile.html         # User settings
 │   ├── uploads/             # User uploads (gitignored)
@@ -269,14 +276,18 @@ Import conversations from other AI platforms:
 
 ### Parent Dashboard
 
-Parents access `/parent.html` for:
+Parents access `/dashboard.html` for:
 
 - **Overview:** Activity stats and recent messages
 - **Conversations:** View all family chats
-- **Family Members:** Manage users and invites
+- **Members:** Manage users, roles, and API limits
+- **Groups:** Organize family members into groups
+- **Roles:** Create custom roles with specific permissions
+- **Invite Codes:** Generate and manage invite codes (with collapsible activated codes)
 - **Pending Deletions:** Review before permanent delete
 - **Search:** Find messages across all conversations
-- **GPU Settings:** Assign GPUs to services (multi-GPU systems)
+- **My Devices:** Manage API keys and view usage history
+- **System Admin:** GPU settings, system configuration
 
 ## Configuration
 

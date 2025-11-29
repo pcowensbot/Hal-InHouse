@@ -8,6 +8,8 @@
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "db:push": "prisma db push",
+    "db:seed": "node prisma/seed.js",
+    "db:migrate": "prisma db push && node prisma/seed.js",
     "db:studio": "prisma studio"
   },
   "keywords": [

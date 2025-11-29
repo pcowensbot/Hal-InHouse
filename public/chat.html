@@ -68,7 +68,13 @@
             <div id="chatHeader" class="chat-header">
                 <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleSidebar()">☰</button>
                 <h3 id="chatTitle">Select a conversation</h3>
+                <div id="sharedBadges" class="shared-badges" style="display: none;">
+                    <!-- Shared group badges will appear here -->
+                </div>
                 <div class="header-actions">
+                    <button id="shareBtn" class="btn btn-sm btn-secondary" style="display: none;" onclick="openShareModal()">
+                        🔗 Share
+                    </button>
                     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
                 </div>
             </div>
@@ -188,6 +194,35 @@
         <img id="imageModalImg" src="" alt="Full size image" onclick="event.stopPropagation()">
     </div>
 
-    <script src="/chat.js"></script>
+    <!-- Share Conversation Modal -->
+    <div id="shareModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔗 Share Conversation</h2>
+                <button onclick="closeShareModal()" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px; color: var(--text-light);">
+                    Share this conversation with groups you're a member of. Group members will be able to view this conversation.
+                </p>
+
+                <div id="currentShares" class="current-shares">
+                    <h4>Currently Shared With:</h4>
+                    <div id="sharedGroupsList">
+                        <!-- Current shares will be listed here -->
+                    </div>
+                </div>
+
+                <div id="availableGroups" class="available-groups">
+                    <h4>Share With:</h4>
+                    <div id="availableGroupsList">
+                        <!-- Available groups for sharing will be listed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/chat.js?v=2"></script>
 </body>
 </html>

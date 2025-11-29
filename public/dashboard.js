@@ -6,7 +6,11 @@ if (!token || !user) {
     window.location.href = '/';
 }
 
-if (user.role !== 'PARENT') {
+// Check access - allow if user is PARENT, SUPER_ADMIN, isSystemAdmin, or has management permissions
+const hasAdminAccess = user.role === 'PARENT' || user.role === 'SUPER_ADMIN' || user.isSystemAdmin ||
+    (user.permissions && (user.permissions.canManageUsers || user.permissions.canManageGroups || user.permissions.canManageSystem));
+
+if (!hasAdminAccess) {
     window.location.href = '/chat.html';
 }
 
@@ -238,12 +242,30 @@ function showTab(tabName) {
         loadPendingDeletions();
     } else if (tabName === 'users') {
         loadUsers();
+    } else if (tabName === 'groups') {
+        loadGroups();
+    } else if (tabName === 'roles') {
+        loadRoles();
     } else if (tabName === 'invites') {
         loadInvites();
+        loadRolesAndGroupsForInvite();
+    } else if (tabName === 'search') {
+        loadSearchUsers();
     } else if (tabName === 'devices') {
         loadDevices();
     } else if (tabName === 'admin') {
         loadAdminData();
+    }
+}
+
+// Load users for search filter
+async function loadSearchUsers() {
+    try {
+        const users = await apiCall('/api/parent/users');
+        const userOptions = users.map(u => `<option value="${u.id}">${u.firstName}</option>`).join('');
+        document.getElementById('searchUserFilter').innerHTML = '<option value="">All Users</option>' + userOptions;
+    } catch (error) {
+        console.error('Failed to load users for search:', error);
     }
 }
 
@@ -423,26 +445,34 @@ async function viewConversation(id) {
 async function loadUsers() {
     try {
         const users = await apiCall('/api/parent/users');
-        
+
         const usersDiv = document.getElementById('usersList');
         usersDiv.innerHTML = users.map(u => {
             const avatarContent = u.avatar
                 ? `<img src="${u.avatar}" alt="${u.firstName}">`
                 : u.firstName.charAt(0).toUpperCase();
 
-            // Determine role display text
-            let roleText = u.role;
-            if (u.role === 'SUPER_ADMIN') roleText = 'Super Admin';
-            else if (u.role === 'PARENT') roleText = 'Parent';
-            else if (u.role === 'CHILD') roleText = 'Child';
+            // Use custom role if available, otherwise legacy role
+            let roleText = u.customRole ? u.customRole.name : u.role;
+            const roleColor = u.customRole?.color || (u.isSystemAdmin ? '#dc2626' : '#6b7280');
 
-            // Determine role badge class
-            const badgeClass = (u.role === 'SUPER_ADMIN' || u.role === 'PARENT') ? 'badge-primary' : 'badge-secondary';
+            // Get group memberships
+            const groupBadges = (u.groupMemberships || []).map(gm => `
+                <span class="badge" style="background: ${gm.group.color || '#3b82f6'}; font-size: 11px;">
+                    ${gm.group.name}${gm.isGroupAdmin ? ' (Admin)' : ''}
+                </span>
+            `).join('');
 
             // Don't show action buttons for current user
             const isCurrentUser = u.id === user.id;
             const actionButtons = !isCurrentUser
-                ? `<button onclick="toggleUserStatus('${u.id}')" class="btn btn-sm ${u.isActive ? 'btn-secondary' : 'btn-primary'}">
+                ? `<button onclick="openUserEdit('${u.id}')" class="btn btn-sm btn-secondary" title="Edit User">
+                       ✏️ Edit
+                   </button>
+                   <button onclick="openApiLimits('${u.id}', '${escapeHtml(u.firstName)}')" class="btn btn-sm btn-secondary" title="API Limits">
+                       📊 API Limits
+                   </button>
+                   <button onclick="toggleUserStatus('${u.id}')" class="btn btn-sm ${u.isActive ? 'btn-secondary' : 'btn-primary'}">
                        ${u.isActive ? 'Disable' : 'Enable'}
                    </button>
                    <button onclick="showDeleteUserModal('${u.id}', '${u.firstName}', '${u.email}', 'archive')" class="btn btn-sm btn-secondary" title="Archive & Delete">
@@ -459,11 +489,13 @@ async function loadUsers() {
                     <div class="user-details">
                         <div class="user-name">
                             ${u.firstName}
+                            ${u.isSystemAdmin ? '<span style="color: #dc2626; margin-left: 8px; font-size: 12px;">(System Admin)</span>' : ''}
                             ${!u.isActive ? '<span style="color: var(--danger); margin-left: 8px;">(Disabled)</span>' : ''}
                         </div>
                         <div class="user-email">${u.email}</div>
                         <div class="user-meta">
-                            <span class="badge ${badgeClass}">${roleText}</span>
+                            <span class="badge" style="background: ${roleColor};">${roleText}</span>
+                            ${groupBadges}
                             <span>${u._count.conversations} conversations</span>
                         </div>
                     </div>
@@ -473,7 +505,7 @@ async function loadUsers() {
                 </div>
             `;
         }).join('');
-        
+
         // Populate user filters
         const userOptions = users.map(u => `<option value="${u.id}">${u.firstName}</option>`).join('');
         document.getElementById('userFilter').innerHTML = '<option value="">All Users</option>' + userOptions;
@@ -495,6 +527,115 @@ async function toggleUserStatus(userId) {
     } catch (error) {
         console.error('Failed to toggle user status:', error);
         alert('Failed to update user status: ' + error.message);
+    }
+}
+
+// ========== API Limits Management ==========
+
+let currentApiLimitsUserId = null;
+
+async function openApiLimits(userId, userName) {
+    currentApiLimitsUserId = userId;
+    document.getElementById('apiLimitsUserName').textContent = userName;
+
+    try {
+        const data = await apiCall(`/api/parent/users/${userId}/api-limits`);
+
+        // Populate form fields
+        document.getElementById('apiLimitDaily').value = data.apiLimitDaily ?? '';
+        document.getElementById('apiLimitMonthly').value = data.apiLimitMonthly ?? '';
+
+        // Show current usage
+        const dailyUsage = data.apiCallsToday || 0;
+        const monthlyUsage = data.apiCallsMonth || 0;
+        const dailyLimit = data.apiLimitDaily;
+        const monthlyLimit = data.apiLimitMonthly;
+
+        document.getElementById('apiUsageDaily').textContent = dailyLimit
+            ? `${dailyUsage} / ${dailyLimit} (${Math.round(dailyUsage / dailyLimit * 100)}%)`
+            : `${dailyUsage} (unlimited)`;
+
+        document.getElementById('apiUsageMonthly').textContent = monthlyLimit
+            ? `${monthlyUsage} / ${monthlyLimit} (${Math.round(monthlyUsage / monthlyLimit * 100)}%)`
+            : `${monthlyUsage} (unlimited)`;
+
+        // Show device info
+        const devicesHtml = data.devices.length > 0
+            ? data.devices.map(d => `
+                <div class="device-info-row">
+                    <span>${escapeHtml(d.name)}</span>
+                    <span>${d.requestCount} requests</span>
+                    <span>${d.lastUsedAt ? new Date(d.lastUsedAt).toLocaleDateString() : 'Never'}</span>
+                </div>
+            `).join('')
+            : '<p class="placeholder">No devices</p>';
+
+        document.getElementById('apiLimitsDevices').innerHTML = devicesHtml;
+
+        // Last reset times
+        document.getElementById('apiResetDaily').textContent = data.apiLimitResetDay
+            ? new Date(data.apiLimitResetDay).toLocaleString()
+            : 'Never';
+        document.getElementById('apiResetMonthly').textContent = data.apiLimitResetMonth
+            ? new Date(data.apiLimitResetMonth).toLocaleString()
+            : 'Never';
+
+        document.getElementById('apiLimitsModal').style.display = 'flex';
+    } catch (error) {
+        console.error('Failed to load API limits:', error);
+        alert('Failed to load API limits: ' + error.message);
+    }
+}
+
+function closeApiLimits() {
+    document.getElementById('apiLimitsModal').style.display = 'none';
+    currentApiLimitsUserId = null;
+}
+
+async function saveApiLimits() {
+    if (!currentApiLimitsUserId) return;
+
+    try {
+        const apiLimitDaily = document.getElementById('apiLimitDaily').value;
+        const apiLimitMonthly = document.getElementById('apiLimitMonthly').value;
+
+        await apiCall(`/api/parent/users/${currentApiLimitsUserId}/api-limits`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                apiLimitDaily: apiLimitDaily === '' ? null : parseInt(apiLimitDaily),
+                apiLimitMonthly: apiLimitMonthly === '' ? null : parseInt(apiLimitMonthly),
+            }),
+        });
+
+        alert('API limits saved successfully');
+        closeApiLimits();
+    } catch (error) {
+        console.error('Failed to save API limits:', error);
+        alert('Failed to save API limits: ' + error.message);
+    }
+}
+
+async function resetApiUsage(type) {
+    if (!currentApiLimitsUserId) return;
+
+    const typeName = type === 'daily' ? 'daily' : 'monthly';
+    if (!confirm(`Reset ${typeName} usage counter to 0?`)) return;
+
+    try {
+        await apiCall(`/api/parent/users/${currentApiLimitsUserId}/api-limits/reset`, {
+            method: 'POST',
+            body: JSON.stringify({
+                resetDaily: type === 'daily',
+                resetMonthly: type === 'monthly',
+            }),
+        });
+
+        // Reload the modal
+        const userName = document.getElementById('apiLimitsUserName').textContent;
+        await openApiLimits(currentApiLimitsUserId, userName);
+    } catch (error) {
+        console.error('Failed to reset API usage:', error);
+        alert('Failed to reset API usage: ' + error.message);
     }
 }
 
@@ -650,11 +791,23 @@ async function loadInvites() {
         if (invites.length === 0) {
             invitesDiv.innerHTML = '<p class="placeholder">No invite codes generated yet</p>';
         } else {
-            invitesDiv.innerHTML = invites.map(invite => {
+            // Separate active/pending from used invites
+            const activeInvites = invites.filter(i => !i.usedAt);
+            const usedInvites = invites.filter(i => i.usedAt);
+
+            const renderInviteCard = (invite) => {
                 const isExpired = invite.expiresAt && new Date(invite.expiresAt) < new Date();
                 const isUsed = invite.usedAt !== null;
                 const status = isUsed ? 'Used' : isExpired ? 'Expired' : invite.isActive ? 'Active' : 'Inactive';
                 const statusClass = isUsed ? 'used' : isExpired ? 'expired' : invite.isActive ? 'active' : 'inactive';
+
+                // Role and group badges
+                const roleBadge = invite.assignedRole
+                    ? `<span class="badge" style="background: ${invite.assignedRole.color || '#6b7280'};">${invite.assignedRole.name}</span>`
+                    : '';
+                const groupBadge = invite.assignedGroup
+                    ? `<span class="badge" style="background: ${invite.assignedGroup.color || '#3b82f6'};">${invite.assignedGroup.name}${invite.makeGroupAdmin ? ' (Admin)' : ''}</span>`
+                    : '';
 
                 return `
                     <div class="invite-card ${statusClass}">
@@ -662,24 +815,55 @@ async function loadInvites() {
                             <div class="invite-code-display">${invite.code}</div>
                             <span class="badge badge-${statusClass}">${status}</span>
                         </div>
+                        <div class="invite-role-info">
+                            ${roleBadge}
+                            ${groupBadge}
+                        </div>
                         <div class="invite-details">
-                            <div><strong>Created:</strong> ${new Date(invite.createdAt).toLocaleString()}</div>
+                            <div><strong>Created:</strong> ${new Date(invite.createdAt).toLocaleString()}${invite.createdBy ? ` by ${invite.createdBy.firstName}` : ''}</div>
                             ${invite.expiresAt ? `<div><strong>Expires:</strong> ${new Date(invite.expiresAt).toLocaleString()}</div>` : '<div><strong>Expires:</strong> Never</div>'}
                             ${invite.emailedTo ? `<div><strong>Emailed to:</strong> ${invite.emailedTo}</div>` : ''}
                             ${invite.emailedAt ? `<div><strong>Emailed on:</strong> ${new Date(invite.emailedAt).toLocaleString()}</div>` : ''}
-                            ${isUsed ? `<div><strong>Used by:</strong> ${invite.usedByUser ? invite.usedByUser.firstName + ' (' + invite.usedByUser.email + ')' : 'Unknown'}</div>` : ''}
+                            ${isUsed ? `<div><strong>Used by:</strong> ${invite.usedBy ? invite.usedBy.firstName + ' (' + invite.usedBy.email + ')' : 'Unknown'}</div>` : ''}
                             ${isUsed ? `<div><strong>Used on:</strong> ${new Date(invite.usedAt).toLocaleString()}</div>` : ''}
                         </div>
                         ${!isUsed && invite.isActive ? `
                             <div class="invite-actions">
                                 <button onclick="copyInviteCode('${invite.code}')" class="btn btn-sm btn-primary">📋 Copy Code</button>
                                 <button onclick="emailInviteCode('${invite.id}', '${invite.code}')" class="btn btn-sm btn-primary">📧 Email Code</button>
+                                <button onclick="openEditInvite('${invite.id}')" class="btn btn-sm btn-secondary">✏️ Edit</button>
                                 <button onclick="deactivateInvite('${invite.id}')" class="btn btn-sm btn-secondary">❌ Deactivate</button>
                             </div>
                         ` : ''}
                     </div>
                 `;
-            }).join('');
+            };
+
+            let html = '';
+
+            // Render active/pending invites
+            if (activeInvites.length > 0) {
+                html += activeInvites.map(renderInviteCard).join('');
+            } else {
+                html += '<p class="placeholder">No pending invite codes</p>';
+            }
+
+            // Render used invites in collapsible section
+            if (usedInvites.length > 0) {
+                html += `
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="toggleActivatedCodes()">
+                            <span class="collapsible-arrow" id="activatedCodesArrow">▶</span>
+                            <h3>Activated Codes (${usedInvites.length})</h3>
+                        </div>
+                        <div class="collapsible-content" id="activatedCodesContent" style="display: none;">
+                            ${usedInvites.map(renderInviteCard).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            invitesDiv.innerHTML = html;
         }
     } catch (error) {
         console.error('Failed to load invites:', error);
@@ -687,12 +871,37 @@ async function loadInvites() {
     }
 }
 
+// Toggle activated codes collapsible section
+function toggleActivatedCodes() {
+    const content = document.getElementById('activatedCodesContent');
+    const arrow = document.getElementById('activatedCodesArrow');
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        arrow.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        arrow.textContent = '▶';
+    }
+}
+
 // Generate new invite code
 async function generateInvite() {
     try {
+        const roleId = document.getElementById('inviteRoleSelect').value;
+        const groupId = document.getElementById('inviteGroupSelect').value;
+        const makeGroupAdmin = document.getElementById('inviteMakeGroupAdmin')?.checked || false;
         const expireDays = document.getElementById('inviteExpireDays').value;
 
-        const body = {};
+        if (!roleId) {
+            alert('Please select a role for this invite code');
+            return;
+        }
+
+        const body = { roleId };
+        if (groupId) {
+            body.groupId = groupId;
+            body.makeGroupAdmin = makeGroupAdmin;
+        }
         if (expireDays) {
             body.expiresInDays = parseInt(expireDays);
         }
@@ -702,17 +911,52 @@ async function generateInvite() {
             body: JSON.stringify(body),
         });
 
-        // Clear input
+        // Clear inputs
         document.getElementById('inviteExpireDays').value = '';
+        document.getElementById('inviteRoleSelect').value = '';
+        document.getElementById('inviteGroupSelect').value = '';
+        if (document.getElementById('inviteMakeGroupAdmin')) {
+            document.getElementById('inviteMakeGroupAdmin').checked = false;
+        }
 
         // Show success message with code
-        alert(`Invite code generated successfully!\n\nCode: ${invite.code}\n\nShare this code with the new family member.`);
+        const roleInfo = invite.assignedRole ? ` with role "${invite.assignedRole.name}"` : '';
+        const groupInfo = invite.assignedGroup ? ` and will join group "${invite.assignedGroup.name}"` : '';
+        alert(`Invite code generated successfully!\n\nCode: ${invite.code}${roleInfo}${groupInfo}\n\nShare this code with the new member.`);
 
         // Reload invites
         loadInvites();
     } catch (error) {
         console.error('Failed to generate invite:', error);
         alert('Failed to generate invite code: ' + error.message);
+    }
+}
+
+// Load roles and groups for invite form
+async function loadRolesAndGroupsForInvite() {
+    try {
+        const [roles, groups] = await Promise.all([
+            apiCall('/api/parent/roles'),
+            apiCall('/api/parent/groups'),
+        ]);
+
+        // Populate role select
+        const roleSelect = document.getElementById('inviteRoleSelect');
+        roleSelect.innerHTML = '<option value="">Select a role...</option>' +
+            roles.map(r => `<option value="${r.id}" style="color: ${r.color};">${r.name}</option>`).join('');
+
+        // Populate group select
+        const groupSelect = document.getElementById('inviteGroupSelect');
+        groupSelect.innerHTML = '<option value="">No group assignment</option>' +
+            groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+
+        // Show/hide group admin toggle when group is selected
+        groupSelect.addEventListener('change', () => {
+            const groupAdminToggle = document.getElementById('groupAdminToggle');
+            groupAdminToggle.style.display = groupSelect.value ? 'block' : 'none';
+        });
+    } catch (error) {
+        console.error('Failed to load roles/groups for invite:', error);
     }
 }
 
@@ -749,6 +993,86 @@ async function deactivateInvite(id) {
     } catch (error) {
         console.error('Failed to deactivate invite:', error);
         alert('Failed to deactivate invite code: ' + error.message);
+    }
+}
+
+// Edit invite code - store current invite being edited
+let editingInviteId = null;
+
+async function openEditInvite(inviteId) {
+    editingInviteId = inviteId;
+
+    try {
+        // Load roles and groups for the dropdowns
+        const [roles, groups, invites] = await Promise.all([
+            apiCall('/api/parent/roles'),
+            apiCall('/api/parent/groups'),
+            apiCall('/api/parent/invites'),
+        ]);
+
+        // Find the specific invite
+        const invite = invites.find(i => i.id === inviteId);
+        if (!invite) {
+            alert('Invite not found');
+            return;
+        }
+
+        // Populate role select
+        const roleSelect = document.getElementById('editInviteRole');
+        roleSelect.innerHTML = '<option value="">No role assigned</option>' +
+            roles.map(r => `<option value="${r.id}" ${invite.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('');
+
+        // Populate group select
+        const groupSelect = document.getElementById('editInviteGroup');
+        groupSelect.innerHTML = '<option value="">No group assignment</option>' +
+            groups.map(g => `<option value="${g.id}" ${invite.groupId === g.id ? 'selected' : ''}>${g.name}</option>`).join('');
+
+        // Set group admin checkbox
+        document.getElementById('editInviteGroupAdmin').checked = invite.makeGroupAdmin || false;
+
+        // Show/hide group admin toggle based on group selection
+        document.getElementById('editGroupAdminToggle').style.display = invite.groupId ? 'block' : 'none';
+
+        // Show modal
+        document.getElementById('editInviteModal').style.display = 'flex';
+    } catch (error) {
+        console.error('Failed to load invite for editing:', error);
+        alert('Failed to load invite: ' + error.message);
+    }
+}
+
+function closeEditInvite() {
+    document.getElementById('editInviteModal').style.display = 'none';
+    editingInviteId = null;
+}
+
+function onEditInviteGroupChange() {
+    const groupId = document.getElementById('editInviteGroup').value;
+    document.getElementById('editGroupAdminToggle').style.display = groupId ? 'block' : 'none';
+    if (!groupId) {
+        document.getElementById('editInviteGroupAdmin').checked = false;
+    }
+}
+
+async function saveEditInvite() {
+    if (!editingInviteId) return;
+
+    try {
+        const roleId = document.getElementById('editInviteRole').value || null;
+        const groupId = document.getElementById('editInviteGroup').value || null;
+        const makeGroupAdmin = document.getElementById('editInviteGroupAdmin').checked;
+
+        await apiCall(`/api/parent/invites/${editingInviteId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ roleId, groupId, makeGroupAdmin }),
+        });
+
+        closeEditInvite();
+        loadInvites();
+        alert('Invite code updated successfully');
+    } catch (error) {
+        console.error('Failed to update invite:', error);
+        alert('Failed to update invite: ' + error.message);
     }
 }
 
@@ -824,6 +1148,7 @@ async function loadDevices() {
                     </div>
                 </div>
                 <div class="device-actions">
+                    <button onclick="openDeviceHistory('${device.id}', '${escapeHtml(device.name)}')" class="btn btn-primary btn-sm">📜 History</button>
                     <button onclick="deleteDevice('${device.id}')" class="btn btn-secondary btn-sm">Delete</button>
                 </div>
             </div>
@@ -917,6 +1242,160 @@ async function deleteDevice(deviceId) {
     } catch (error) {
         console.error('Failed to delete device:', error);
         alert('Failed to delete device: ' + error.message);
+    }
+}
+
+// ========== Device History ==========
+
+let currentHistoryDeviceId = null;
+let historyCurrentPage = 1;
+let historySortBy = 'createdAt';
+let historySortOrder = 'desc';
+
+async function openDeviceHistory(deviceId, deviceName) {
+    currentHistoryDeviceId = deviceId;
+    historyCurrentPage = 1;
+
+    document.getElementById('historyDeviceName').textContent = deviceName;
+    document.getElementById('historySearch').value = '';
+    document.getElementById('historyStatus').value = '';
+    document.getElementById('historyStartDate').value = '';
+    document.getElementById('historyEndDate').value = '';
+    document.getElementById('historySortBy').value = 'createdAt';
+    document.getElementById('historySortOrder').value = 'desc';
+
+    document.getElementById('deviceHistoryModal').style.display = 'flex';
+    await loadDeviceHistory();
+}
+
+function closeDeviceHistory() {
+    document.getElementById('deviceHistoryModal').style.display = 'none';
+    currentHistoryDeviceId = null;
+}
+
+async function loadDeviceHistory() {
+    if (!currentHistoryDeviceId) return;
+
+    const search = document.getElementById('historySearch').value;
+    const status = document.getElementById('historyStatus').value;
+    const startDate = document.getElementById('historyStartDate').value;
+    const endDate = document.getElementById('historyEndDate').value;
+    historySortBy = document.getElementById('historySortBy').value;
+    historySortOrder = document.getElementById('historySortOrder').value;
+
+    const params = new URLSearchParams({
+        page: historyCurrentPage,
+        limit: 25,
+        sortBy: historySortBy,
+        sortOrder: historySortOrder,
+    });
+
+    if (search) params.append('search', search);
+    if (status) params.append('status', status);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+
+    try {
+        const result = await apiCall(`/api/devices/${currentHistoryDeviceId}/history?${params}`);
+        renderHistoryTable(result.logs, result.pagination);
+    } catch (error) {
+        console.error('Failed to load device history:', error);
+        document.getElementById('historyTableBody').innerHTML =
+            '<tr><td colspan="7" class="error">Failed to load history</td></tr>';
+    }
+}
+
+function renderHistoryTable(logs, pagination) {
+    const tbody = document.getElementById('historyTableBody');
+
+    if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="placeholder">No API requests found</td></tr>';
+        document.getElementById('historyPagination').innerHTML = '';
+        return;
+    }
+
+    tbody.innerHTML = logs.map(log => {
+        const statusClass = log.status >= 400 ? 'error-status' : 'success-status';
+        const promptPreview = log.prompt ? (log.prompt.length > 50 ? log.prompt.substring(0, 50) + '...' : log.prompt) : '-';
+        const responsePreview = log.response ? (log.response.length > 50 ? log.response.substring(0, 50) + '...' : log.response) : (log.error || '-');
+
+        return `
+            <tr onclick="showLogDetails('${log.id}')" class="clickable-row" data-log='${JSON.stringify(log).replace(/'/g, "&#39;")}'>
+                <td>${new Date(log.createdAt).toLocaleString()}</td>
+                <td><code>${log.method} ${log.endpoint}</code></td>
+                <td>${log.model || '-'}</td>
+                <td class="prompt-cell" title="${escapeHtml(log.prompt || '')}">${escapeHtml(promptPreview)}</td>
+                <td class="response-cell" title="${escapeHtml(log.response || log.error || '')}">${escapeHtml(responsePreview)}</td>
+                <td class="${statusClass}">${log.status}</td>
+                <td>${log.durationMs ? log.durationMs + 'ms' : '-'}</td>
+            </tr>
+        `;
+    }).join('');
+
+    // Render pagination
+    const { page, totalPages, total } = pagination;
+    let paginationHtml = `<span>Page ${page} of ${totalPages} (${total} total)</span>`;
+
+    if (totalPages > 1) {
+        paginationHtml += '<div class="pagination-buttons">';
+        if (page > 1) {
+            paginationHtml += `<button onclick="goToHistoryPage(${page - 1})" class="btn btn-sm btn-secondary">Previous</button>`;
+        }
+        if (page < totalPages) {
+            paginationHtml += `<button onclick="goToHistoryPage(${page + 1})" class="btn btn-sm btn-secondary">Next</button>`;
+        }
+        paginationHtml += '</div>';
+    }
+
+    document.getElementById('historyPagination').innerHTML = paginationHtml;
+}
+
+function goToHistoryPage(page) {
+    historyCurrentPage = page;
+    loadDeviceHistory();
+}
+
+function showLogDetails(logId) {
+    // Find the clicked row and get the log data
+    const row = document.querySelector(`tr[data-log*='"id":"${logId}"']`);
+    if (!row) return;
+
+    const log = JSON.parse(row.dataset.log.replace(/&#39;/g, "'"));
+
+    document.getElementById('logDetailTime').textContent = new Date(log.createdAt).toLocaleString();
+    document.getElementById('logDetailEndpoint').textContent = `${log.method} ${log.endpoint}`;
+    document.getElementById('logDetailModel').textContent = log.model || 'N/A';
+    document.getElementById('logDetailStatus').textContent = log.status;
+    document.getElementById('logDetailStatus').className = log.status >= 400 ? 'error-status' : 'success-status';
+    document.getElementById('logDetailDuration').textContent = log.durationMs ? `${log.durationMs}ms` : 'N/A';
+    document.getElementById('logDetailTokens').textContent = log.tokenCount || 'N/A';
+    document.getElementById('logDetailPrompt').textContent = log.prompt || 'No prompt';
+    document.getElementById('logDetailResponse').textContent = log.response || log.error || 'No response';
+
+    document.getElementById('logDetailModal').style.display = 'flex';
+}
+
+function closeLogDetail() {
+    document.getElementById('logDetailModal').style.display = 'none';
+}
+
+async function clearDeviceHistory() {
+    if (!currentHistoryDeviceId) return;
+
+    if (!confirm('Are you sure you want to clear all API history for this device? This cannot be undone.')) {
+        return;
+    }
+
+    try {
+        await apiCall(`/api/devices/${currentHistoryDeviceId}/history`, {
+            method: 'DELETE',
+        });
+
+        await loadDeviceHistory();
+        alert('History cleared successfully');
+    } catch (error) {
+        console.error('Failed to clear history:', error);
+        alert('Failed to clear history: ' + error.message);
     }
 }
 
@@ -1557,6 +2036,431 @@ async function updateGPUAssignments() {
         saveBtn.textContent = '💾 Save GPU Assignments';
         saveStatus.textContent = '✗ Failed to save: ' + error.message;
         saveStatus.className = 'save-status error';
+    }
+}
+
+// ========== GROUP MANAGEMENT ==========
+
+// Load groups
+async function loadGroups() {
+    try {
+        const groups = await apiCall('/api/parent/groups');
+
+        const groupsDiv = document.getElementById('groupsList');
+        if (groups.length === 0) {
+            groupsDiv.innerHTML = '<p class="placeholder">No groups created yet. Create one above!</p>';
+            return;
+        }
+
+        groupsDiv.innerHTML = groups.map(g => `
+            <div class="group-card" style="border-left: 4px solid ${g.color || '#3b82f6'};">
+                <div class="group-info">
+                    <div class="group-name" style="color: ${g.color || '#3b82f6'};">${g.name}</div>
+                    ${g.description ? `<div class="group-description">${g.description}</div>` : ''}
+                    <div class="group-meta">
+                        <span>${g._count?.members || 0} members</span>
+                    </div>
+                </div>
+                <div class="group-actions">
+                    <button onclick="openGroupDetails('${g.id}')" class="btn btn-sm btn-primary">Manage Members</button>
+                    <button onclick="deleteGroup('${g.id}')" class="btn btn-sm btn-danger">Delete</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Failed to load groups:', error);
+        document.getElementById('groupsList').innerHTML = '<p class="error">Failed to load groups</p>';
+    }
+}
+
+// Create group
+async function createGroup() {
+    const name = document.getElementById('newGroupName').value.trim();
+    const description = document.getElementById('newGroupDescription').value.trim();
+    const color = document.getElementById('newGroupColor').value;
+
+    if (!name) {
+        alert('Please enter a group name');
+        return;
+    }
+
+    try {
+        await apiCall('/api/parent/groups', {
+            method: 'POST',
+            body: JSON.stringify({ name, description, color }),
+        });
+
+        // Clear inputs
+        document.getElementById('newGroupName').value = '';
+        document.getElementById('newGroupDescription').value = '';
+        document.getElementById('newGroupColor').value = '#3b82f6';
+
+        // Reload groups
+        loadGroups();
+    } catch (error) {
+        console.error('Failed to create group:', error);
+        alert('Failed to create group: ' + error.message);
+    }
+}
+
+// Delete group
+async function deleteGroup(groupId) {
+    if (!confirm('Delete this group? Members will be removed from it.')) {
+        return;
+    }
+
+    try {
+        await apiCall(`/api/parent/groups/${groupId}`, {
+            method: 'DELETE',
+        });
+
+        loadGroups();
+    } catch (error) {
+        console.error('Failed to delete group:', error);
+        alert('Failed to delete group: ' + error.message);
+    }
+}
+
+// Current group being edited
+let currentGroupId = null;
+
+// Open group details modal
+async function openGroupDetails(groupId) {
+    currentGroupId = groupId;
+
+    try {
+        const [group, allUsers] = await Promise.all([
+            apiCall(`/api/parent/groups/${groupId}`),
+            apiCall('/api/parent/users'),
+        ]);
+
+        document.getElementById('groupDetailsTitle').textContent = group.name;
+
+        // Show members
+        const membersDiv = document.getElementById('groupMembers');
+        if (group.members.length === 0) {
+            membersDiv.innerHTML = '<p class="placeholder">No members yet</p>';
+        } else {
+            membersDiv.innerHTML = group.members.map(m => `
+                <div class="group-member-item">
+                    <div class="member-info">
+                        <span class="member-name">${m.user.firstName}</span>
+                        <span class="member-email">${m.user.email}</span>
+                        ${m.isGroupAdmin ? '<span class="badge badge-primary" style="font-size: 10px;">Admin</span>' : ''}
+                    </div>
+                    <div class="member-actions">
+                        <button onclick="toggleGroupAdmin('${m.userId}', ${!m.isGroupAdmin})" class="btn btn-sm btn-secondary">
+                            ${m.isGroupAdmin ? 'Remove Admin' : 'Make Admin'}
+                        </button>
+                        <button onclick="removeFromGroup('${m.userId}')" class="btn btn-sm btn-danger">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Populate add member select (exclude current members)
+        const memberIds = group.members.map(m => m.userId);
+        const nonMembers = allUsers.filter(u => !memberIds.includes(u.id));
+        const addMemberSelect = document.getElementById('addMemberSelect');
+        addMemberSelect.innerHTML = '<option value="">Select a user...</option>' +
+            nonMembers.map(u => `<option value="${u.id}">${u.firstName} (${u.email})</option>`).join('');
+
+        document.getElementById('groupDetailsModal').style.display = 'flex';
+    } catch (error) {
+        console.error('Failed to load group details:', error);
+        alert('Failed to load group details: ' + error.message);
+    }
+}
+
+// Close group details modal
+function closeGroupDetails() {
+    document.getElementById('groupDetailsModal').style.display = 'none';
+    currentGroupId = null;
+}
+
+// Add member to group
+async function addMemberToGroup() {
+    const userId = document.getElementById('addMemberSelect').value;
+    const isGroupAdmin = document.getElementById('addMemberAsAdmin').checked;
+
+    if (!userId) {
+        alert('Please select a user');
+        return;
+    }
+
+    try {
+        await apiCall(`/api/parent/groups/${currentGroupId}/members`, {
+            method: 'POST',
+            body: JSON.stringify({ userId, isGroupAdmin }),
+        });
+
+        // Reload group details
+        openGroupDetails(currentGroupId);
+        loadGroups();
+    } catch (error) {
+        console.error('Failed to add member:', error);
+        alert('Failed to add member: ' + error.message);
+    }
+}
+
+// Remove member from group
+async function removeFromGroup(userId) {
+    if (!confirm('Remove this user from the group?')) {
+        return;
+    }
+
+    try {
+        await apiCall(`/api/parent/groups/${currentGroupId}/members/${userId}`, {
+            method: 'DELETE',
+        });
+
+        openGroupDetails(currentGroupId);
+        loadGroups();
+    } catch (error) {
+        console.error('Failed to remove member:', error);
+        alert('Failed to remove member: ' + error.message);
+    }
+}
+
+// Toggle group admin status
+async function toggleGroupAdmin(userId, makeAdmin) {
+    try {
+        await apiCall(`/api/parent/groups/${currentGroupId}/members/${userId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ isGroupAdmin: makeAdmin, canViewAll: makeAdmin }),
+        });
+
+        openGroupDetails(currentGroupId);
+    } catch (error) {
+        console.error('Failed to update member:', error);
+        alert('Failed to update member: ' + error.message);
+    }
+}
+
+// ========== ROLE MANAGEMENT ==========
+
+// Load roles
+async function loadRoles() {
+    try {
+        const roles = await apiCall('/api/parent/roles');
+
+        const rolesDiv = document.getElementById('rolesList');
+        if (roles.length === 0) {
+            rolesDiv.innerHTML = '<p class="placeholder">No roles defined yet</p>';
+            return;
+        }
+
+        rolesDiv.innerHTML = roles.map(r => {
+            const permissions = [];
+            if (r.canManageUsers) permissions.push('Users');
+            if (r.canManageGroups) permissions.push('Groups');
+            if (r.canManageRoles) permissions.push('Roles');
+            if (r.canViewAllConvos) permissions.push('View All');
+            if (r.canManageSystem) permissions.push('System');
+            if (r.canCreateInvites) permissions.push('Invites');
+            if (r.canDeleteConvos) permissions.push('Delete');
+
+            return `
+                <div class="role-card" style="border-left: 4px solid ${r.color || '#6b7280'};">
+                    <div class="role-info">
+                        <div class="role-name" style="color: ${r.color || '#6b7280'};">
+                            ${r.name}
+                            ${r.isSystem ? '<span class="badge badge-secondary" style="font-size: 10px; margin-left: 8px;">System</span>' : ''}
+                        </div>
+                        ${r.description ? `<div class="role-description">${r.description}</div>` : ''}
+                        <div class="role-permissions">
+                            ${permissions.length > 0 ? permissions.map(p => `<span class="perm-badge">${p}</span>`).join('') : '<span style="color: var(--text-secondary);">No special permissions</span>'}
+                        </div>
+                        <div class="role-meta">
+                            <span>${r._count?.users || 0} users</span>
+                        </div>
+                    </div>
+                    <div class="role-actions">
+                        ${!r.isSystem ? `<button onclick="deleteRole('${r.id}')" class="btn btn-sm btn-danger">Delete</button>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Failed to load roles:', error);
+        document.getElementById('rolesList').innerHTML = '<p class="error">Failed to load roles</p>';
+    }
+}
+
+// Create role
+async function createRole() {
+    const name = document.getElementById('newRoleName').value.trim();
+    const description = document.getElementById('newRoleDescription').value.trim();
+    const color = document.getElementById('newRoleColor').value;
+
+    if (!name) {
+        alert('Please enter a role name');
+        return;
+    }
+
+    const permissions = {
+        canManageUsers: document.getElementById('perm_canManageUsers').checked,
+        canManageGroups: document.getElementById('perm_canManageGroups').checked,
+        canManageRoles: document.getElementById('perm_canManageRoles').checked,
+        canViewAllConvos: document.getElementById('perm_canViewAllConvos').checked,
+        canManageSystem: document.getElementById('perm_canManageSystem').checked,
+        canCreateInvites: document.getElementById('perm_canCreateInvites').checked,
+        canDeleteConvos: document.getElementById('perm_canDeleteConvos').checked,
+    };
+
+    try {
+        await apiCall('/api/parent/roles', {
+            method: 'POST',
+            body: JSON.stringify({ name, description, color, ...permissions }),
+        });
+
+        // Clear inputs
+        document.getElementById('newRoleName').value = '';
+        document.getElementById('newRoleDescription').value = '';
+        document.getElementById('newRoleColor').value = '#6b7280';
+        document.querySelectorAll('.permissions-grid input[type="checkbox"]').forEach(cb => cb.checked = false);
+
+        loadRoles();
+    } catch (error) {
+        console.error('Failed to create role:', error);
+        alert('Failed to create role: ' + error.message);
+    }
+}
+
+// Delete role
+async function deleteRole(roleId) {
+    if (!confirm('Delete this role? Users with this role will need to be reassigned.')) {
+        return;
+    }
+
+    try {
+        await apiCall(`/api/parent/roles/${roleId}`, {
+            method: 'DELETE',
+        });
+
+        loadRoles();
+    } catch (error) {
+        console.error('Failed to delete role:', error);
+        alert('Failed to delete role: ' + error.message);
+    }
+}
+
+// ========== USER EDITING ==========
+
+let currentEditUserId = null;
+
+// Open user edit modal
+async function openUserEdit(userId) {
+    currentEditUserId = userId;
+
+    try {
+        const [users, roles, groups] = await Promise.all([
+            apiCall('/api/parent/users'),
+            apiCall('/api/parent/roles'),
+            apiCall('/api/parent/groups'),
+        ]);
+
+        const editUser = users.find(u => u.id === userId);
+        if (!editUser) {
+            alert('User not found');
+            return;
+        }
+
+        document.getElementById('userEditTitle').textContent = `Edit ${editUser.firstName}`;
+
+        // Populate role select
+        const roleSelect = document.getElementById('userEditRole');
+        roleSelect.innerHTML = roles.map(r =>
+            `<option value="${r.id}" ${r.id === editUser.roleId ? 'selected' : ''}>${r.name}</option>`
+        ).join('');
+
+        // Show current group memberships
+        const userGroupsDiv = document.getElementById('userGroupsList');
+        const userGroupIds = (editUser.groupMemberships || []).map(gm => gm.group.id);
+
+        userGroupsDiv.innerHTML = groups.map(g => {
+            const membership = editUser.groupMemberships?.find(gm => gm.group.id === g.id);
+            const isMember = !!membership;
+
+            return `
+                <div class="user-group-item">
+                    <label class="toggle-label">
+                        <input type="checkbox" data-group-id="${g.id}" ${isMember ? 'checked' : ''}>
+                        <span style="color: ${g.color || '#3b82f6'};">${g.name}</span>
+                    </label>
+                    ${isMember ? `
+                        <label class="toggle-label" style="margin-left: 20px;">
+                            <input type="checkbox" data-group-admin="${g.id}" ${membership.isGroupAdmin ? 'checked' : ''}>
+                            <span>Group Admin</span>
+                        </label>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('userEditModal').style.display = 'flex';
+    } catch (error) {
+        console.error('Failed to open user edit:', error);
+        alert('Failed to load user data: ' + error.message);
+    }
+}
+
+// Close user edit modal
+function closeUserEdit() {
+    document.getElementById('userEditModal').style.display = 'none';
+    currentEditUserId = null;
+}
+
+// Save user changes
+async function saveUserChanges() {
+    const roleId = document.getElementById('userEditRole').value;
+
+    try {
+        // Update role
+        await apiCall(`/api/parent/users/${currentEditUserId}/role`, {
+            method: 'PATCH',
+            body: JSON.stringify({ roleId }),
+        });
+
+        // Update group memberships
+        const groupCheckboxes = document.querySelectorAll('#userGroupsList input[data-group-id]');
+        for (const cb of groupCheckboxes) {
+            const groupId = cb.dataset.groupId;
+            const shouldBeMember = cb.checked;
+            const adminCb = document.querySelector(`input[data-group-admin="${groupId}"]`);
+            const isAdmin = adminCb?.checked || false;
+
+            // Get current membership status
+            const users = await apiCall('/api/parent/users');
+            const editUser = users.find(u => u.id === currentEditUserId);
+            const currentMembership = editUser?.groupMemberships?.find(gm => gm.group.id === groupId);
+
+            if (shouldBeMember && !currentMembership) {
+                // Add to group
+                await apiCall(`/api/parent/groups/${groupId}/members`, {
+                    method: 'POST',
+                    body: JSON.stringify({ userId: currentEditUserId, isGroupAdmin: isAdmin }),
+                });
+            } else if (!shouldBeMember && currentMembership) {
+                // Remove from group
+                await apiCall(`/api/parent/groups/${groupId}/members/${currentEditUserId}`, {
+                    method: 'DELETE',
+                });
+            } else if (shouldBeMember && currentMembership && currentMembership.isGroupAdmin !== isAdmin) {
+                // Update admin status
+                await apiCall(`/api/parent/groups/${groupId}/members/${currentEditUserId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ isGroupAdmin: isAdmin }),
+                });
+            }
+        }
+
+        closeUserEdit();
+        loadUsers();
+        alert('User updated successfully');
+    } catch (error) {
+        console.error('Failed to save user changes:', error);
+        alert('Failed to save changes: ' + error.message);
     }
 }
 

@@ -656,7 +656,7 @@ document.getElementById('profileBtn').addEventListener('click', () => {
 if (user.role === 'PARENT') {
     document.getElementById('dashboardBtn').style.display = 'block';
     document.getElementById('dashboardBtn').addEventListener('click', () => {
-        window.location.href = '/parent.html';
+        window.location.href = '/dashboard.html';
     });
 }
 

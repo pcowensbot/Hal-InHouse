@@ -11,19 +11,35 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  passwordHash  String
-  firstName     String
-  role          Role           @default(CHILD)
-  avatar        String?        @db.Text // Base64 encoded image or URL
-  isActive      Boolean        @default(true) // Can be disabled by parents
-  createdAt     DateTime       @default(now())
-  conversations Conversation[]
-  books         Book[]
-  starredNotes  StarredNote[]
-  devices       Device[]
-  trainingJobs  TrainingJob[]
+  id             String         @id @default(uuid())
+  email          String         @unique
+  passwordHash   String
+  firstName      String
+  role           Role           @default(CHILD)
+  avatar         String?        @db.Text // Base64 encoded image or URL
+  isActive       Boolean        @default(true) // Can be disabled by parents
+  isSystemAdmin  Boolean        @default(false) // Full system access
+  roleId         String?
+  customRole     CustomRole?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  createdAt      DateTime       @default(now())
+  // API Rate Limiting
+  apiLimitDaily    Int?         // Max API calls per day (null = unlimited)
+  apiLimitMonthly  Int?         // Max API calls per month (null = unlimited)
+  apiCallsToday    Int          @default(0)
+  apiCallsMonth    Int          @default(0)
+  apiLimitResetDay DateTime?    // When daily count was last reset
+  apiLimitResetMonth DateTime?  // When monthly count was last reset
+  // Relations
+  conversations  Conversation[]
+  books          Book[]
+  starredNotes   StarredNote[]
+  devices        Device[]
+  trainingJobs   TrainingJob[]
+  groupMemberships GroupMember[]
+  createdInvites InviteCode[]   @relation("CreatedInvites")
+  usedInvites    InviteCode[]   @relation("UsedInvites")
+  createdGroups  Group[]
+  sharedConversations ConversationShare[]
 
   @@map("users")
 }
@@ -32,6 +48,7 @@ enum Role {
   SUPER_ADMIN // First account created
   PARENT      // Additional parent accounts
   CHILD       // Child accounts
+  MEMBER      // Generic member (for new role system)
 }
 
 model Conversation {
@@ -46,6 +63,7 @@ model Conversation {
   deletedBy       String?   // User ID who deleted it
   permanentDelete Boolean   @default(false) // Flag for final deletion
   messages        Message[]
+  shares          ConversationShare[]
 
   @@index([userId])
   @@index([deletedAt])
@@ -91,20 +109,93 @@ model Settings {
 }
 
 model InviteCode {
-  id          String    @id @default(uuid())
-  code        String    @unique
-  createdBy   String    // Parent user ID who created it
-  createdAt   DateTime  @default(now())
-  expiresAt   DateTime? // Optional expiration
-  usedAt      DateTime? // When it was used
-  usedBy      String?   // User ID who used it
-  isActive    Boolean   @default(true)
-  emailedTo   String?   // Email address it was sent to
-  emailedAt   DateTime? // When it was emailed
+  id              String      @id @default(uuid())
+  code            String      @unique
+  createdById     String?
+  createdBy       User?       @relation("CreatedInvites", fields: [createdById], references: [id], onDelete: SetNull)
+  legacyCreatedBy String?     // Legacy field for old data
+  createdAt       DateTime    @default(now())
+  expiresAt       DateTime?   // Optional expiration
+  usedAt          DateTime?   // When it was used
+  usedById        String?
+  usedBy          User?       @relation("UsedInvites", fields: [usedById], references: [id], onDelete: SetNull)
+  isActive        Boolean     @default(true)
+  emailedTo       String?     // Email address it was sent to
+  emailedAt       DateTime?   // When it was emailed
+  roleId          String?
+  assignedRole    CustomRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  groupId         String?
+  assignedGroup   Group?      @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  makeGroupAdmin  Boolean     @default(false)
 
   @@index([code])
-  @@index([createdBy])
+  @@index([createdById])
   @@map("invite_codes")
+}
+
+model CustomRole {
+  id               String       @id @default(uuid())
+  name             String       @unique
+  description      String?
+  color            String?
+  canManageUsers   Boolean      @default(false)
+  canManageGroups  Boolean      @default(false)
+  canManageRoles   Boolean      @default(false)
+  canViewAllConvos Boolean      @default(false)
+  canManageSystem  Boolean      @default(false)
+  canCreateInvites Boolean      @default(false)
+  canDeleteConvos  Boolean      @default(false)
+  isSystem         Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  users            User[]
+  inviteCodes      InviteCode[]
+
+  @@map("custom_roles")
+}
+
+model Group {
+  id          String              @id @default(uuid())
+  name        String
+  description String?
+  color       String?
+  createdBy   String
+  creator     User                @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  members     GroupMember[]
+  inviteCodes InviteCode[]
+  sharedConversations ConversationShare[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId      String
+  group        Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  isGroupAdmin Boolean  @default(false)
+  canViewAll   Boolean  @default(false)
+  joinedAt     DateTime @default(now())
+
+  @@unique([userId, groupId])
+  @@map("group_members")
+}
+
+model ConversationShare {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  groupId        String
+  group          Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sharedBy       String
+  sharedByUser   User         @relation(fields: [sharedBy], references: [id], onDelete: Cascade)
+  sharedAt       DateTime     @default(now())
+
+  @@unique([conversationId, groupId])
+  @@map("conversation_shares")
 }
 
 model Book {
@@ -156,10 +247,33 @@ model Device {
   requestCount Int      @default(0) // Track usage
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  apiLogs     DeviceApiLog[]
 
   @@index([userId])
   @@index([apiKeyHash])
   @@map("devices")
+}
+
+model DeviceApiLog {
+  id          String    @id @default(uuid())
+  deviceId    String
+  device      Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  endpoint    String    // e.g., "/chat", "/generate", "/models"
+  method      String    // e.g., "POST", "GET"
+  model       String?   // LLM model used (if applicable)
+  prompt      String?   // The input message/prompt (truncated if too long)
+  response    String?   // The response (truncated if too long)
+  status      Int       // HTTP status code
+  durationMs  Int?      // How long the request took
+  tokenCount  Int?      // Number of tokens used (if available)
+  error       String?   // Error message if failed
+  metadata    Json?     // Additional metadata (like context length, etc.)
+  createdAt   DateTime  @default(now())
+
+  @@index([deviceId])
+  @@index([createdAt])
+  @@index([deviceId, createdAt])
+  @@map("device_api_logs")
 }
 
 model TrainingJob {

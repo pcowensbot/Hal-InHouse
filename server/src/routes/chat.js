@@ -8,36 +8,135 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateToken);
 
-// Get all conversations for current user (excluding soft-deleted)
+// Get all conversations for current user + shared with their groups (excluding soft-deleted)
 router.get('/conversations', async (req, res) => {
   try {
+    // Get user's group memberships
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        groupMemberships: {
+          select: { groupId: true },
+        },
+      },
+    });
+
+    const userGroupIds = user?.groupMemberships.map(gm => gm.groupId) || [];
+
+    // Get own conversations + conversations shared with user's groups
     const conversations = await prisma.conversation.findMany({
       where: {
-        userId: req.user.id,
-        deletedAt: null, // Exclude soft-deleted conversations
+        deletedAt: null,
+        OR: [
+          { userId: req.user.id }, // Own conversations
+          {
+            sharedWith: {
+              some: {
+                groupId: { in: userGroupIds },
+              },
+            },
+          }, // Shared with user's groups
+        ],
       },
       orderBy: [
-        { starred: 'desc' },   // Starred conversations first
-        { updatedAt: 'desc' }, // Then by most recent
+        { starred: 'desc' },
+        { updatedAt: 'desc' },
       ],
       include: {
         messages: {
           take: 1,
           orderBy: { createdAt: 'desc' },
         },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+          },
+        },
+        sharedWith: {
+          include: {
+            group: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    res.json(conversations);
+    // Mark which are shared vs owned
+    const result = conversations.map(conv => ({
+      ...conv,
+      isOwned: conv.userId === req.user.id,
+      isShared: conv.userId !== req.user.id,
+    }));
+
+    res.json(result);
   } catch (error) {
     console.error('Get conversations error:', error);
     res.status(500).json({ error: 'Failed to fetch conversations' });
   }
 });
 
+// Helper to check if user has access to conversation
+async function hasConversationAccess(userId, conversationId) {
+  // Get user with their group memberships and permissions
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      customRole: true,
+      groupMemberships: {
+        select: { groupId: true, canViewAll: true, isGroupAdmin: true },
+      },
+    },
+  });
+
+  // System admins can see everything
+  if (user?.isSystemAdmin) return { hasAccess: true, isOwner: false };
+
+  // Users with canViewAllConvos permission can see everything
+  if (user?.customRole?.canViewAllConvos) return { hasAccess: true, isOwner: false };
+
+  // Get the conversation with sharing info
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    include: {
+      sharedWith: {
+        select: { groupId: true },
+      },
+    },
+  });
+
+  if (!conversation) return { hasAccess: false, isOwner: false };
+
+  // Owner always has access
+  if (conversation.userId === userId) return { hasAccess: true, isOwner: true };
+
+  // Check if conversation is shared with any of user's groups
+  const userGroupIds = user?.groupMemberships.map(gm => gm.groupId) || [];
+  const sharedGroupIds = conversation.sharedWith.map(s => s.groupId);
+  const hasGroupAccess = sharedGroupIds.some(gid => userGroupIds.includes(gid));
+
+  // Check if user is group admin with view all permissions for any shared group
+  const groupAdminAccess = user?.groupMemberships.some(gm =>
+    sharedGroupIds.includes(gm.groupId) && (gm.canViewAll || gm.isGroupAdmin)
+  );
+
+  return { hasAccess: hasGroupAccess || groupAdminAccess, isOwner: false };
+}
+
 // Get single conversation with all messages
 router.get('/conversations/:id', async (req, res) => {
   try {
+    const { hasAccess, isOwner } = await hasConversationAccess(req.user.id, req.params.id);
+
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const conversation = await prisma.conversation.findUnique({
       where: { id: req.params.id },
       include: {
@@ -48,7 +147,18 @@ router.get('/conversations/:id', async (req, res) => {
           select: {
             id: true,
             firstName: true,
-            role: true,
+            avatar: true,
+          },
+        },
+        sharedWith: {
+          include: {
+            group: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
+            },
           },
         },
       },
@@ -58,12 +168,11 @@ router.get('/conversations/:id', async (req, res) => {
       return res.status(404).json({ error: 'Conversation not found' });
     }
 
-    // Check access (user must own conversation or be a parent)
-    if (conversation.userId !== req.user.id && req.user.role !== 'PARENT') {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
-    res.json(conversation);
+    res.json({
+      ...conversation,
+      isOwned: isOwner,
+      isShared: !isOwner,
+    });
   } catch (error) {
     console.error('Get conversation error:', error);
     res.status(500).json({ error: 'Failed to fetch conversation' });
@@ -303,6 +412,203 @@ router.post('/conversations/:id/messages', async (req, res) => {
   } catch (error) {
     console.error('Send message error:', error);
     res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// ============================================
+// CONVERSATION SHARING ROUTES
+// ============================================
+
+// Get user's groups (for sharing UI)
+router.get('/my-groups', async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        groupMemberships: {
+          include: {
+            group: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                description: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const groups = user?.groupMemberships.map(gm => ({
+      ...gm.group,
+      isGroupAdmin: gm.isGroupAdmin,
+    })) || [];
+
+    res.json(groups);
+  } catch (error) {
+    console.error('Get my groups error:', error);
+    res.status(500).json({ error: 'Failed to fetch groups' });
+  }
+});
+
+// Share conversation with a group
+router.post('/conversations/:id/share', async (req, res) => {
+  try {
+    const { id: conversationId } = req.params;
+    const { groupId } = req.body;
+    const userId = req.user.id;
+
+    if (!groupId) {
+      return res.status(400).json({ error: 'Group ID is required' });
+    }
+
+    // Check ownership - only owner can share
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
+    if (conversation.userId !== userId) {
+      return res.status(403).json({ error: 'Only the owner can share a conversation' });
+    }
+
+    // Check user is member of the group
+    const membership = await prisma.groupMember.findUnique({
+      where: {
+        userId_groupId: { userId, groupId },
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({ error: 'You can only share with groups you belong to' });
+    }
+
+    // Check if already shared
+    const existing = await prisma.conversationShare.findUnique({
+      where: {
+        conversationId_groupId: { conversationId, groupId },
+      },
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: 'Already shared with this group' });
+    }
+
+    // Create the share
+    const share = await prisma.conversationShare.create({
+      data: {
+        conversationId,
+        groupId,
+        sharedBy: userId,
+      },
+      include: {
+        group: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+      },
+    });
+
+    res.status(201).json(share);
+  } catch (error) {
+    console.error('Share conversation error:', error);
+    res.status(500).json({ error: 'Failed to share conversation' });
+  }
+});
+
+// Unshare conversation from a group
+router.delete('/conversations/:id/share/:groupId', async (req, res) => {
+  try {
+    const { id: conversationId, groupId } = req.params;
+    const userId = req.user.id;
+
+    // Check ownership
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
+    if (conversation.userId !== userId) {
+      return res.status(403).json({ error: 'Only the owner can unshare a conversation' });
+    }
+
+    await prisma.conversationShare.delete({
+      where: {
+        conversationId_groupId: { conversationId, groupId },
+      },
+    });
+
+    res.json({ success: true, message: 'Conversation unshared' });
+  } catch (error) {
+    console.error('Unshare conversation error:', error);
+    res.status(500).json({ error: 'Failed to unshare conversation' });
+  }
+});
+
+// Get shared conversations for a specific group (for group admins)
+router.get('/groups/:groupId/conversations', async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const userId = req.user.id;
+
+    // Check user has access to this group
+    const membership = await prisma.groupMember.findUnique({
+      where: {
+        userId_groupId: { userId, groupId },
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({ error: 'You are not a member of this group' });
+    }
+
+    const conversations = await prisma.conversation.findMany({
+      where: {
+        deletedAt: null,
+        sharedWith: {
+          some: { groupId },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            avatar: true,
+          },
+        },
+        messages: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+        },
+        sharedWith: {
+          where: { groupId },
+          include: {
+            sharedByUser: {
+              select: {
+                firstName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.json(conversations);
+  } catch (error) {
+    console.error('Get group conversations error:', error);
+    res.status(500).json({ error: 'Failed to fetch group conversations' });
   }
 });
 

@@ -81,7 +81,7 @@
         if (localStorage.getItem('hal_token')) {
             const user = JSON.parse(localStorage.getItem('hal_user'));
             if (user.role === 'PARENT') {
-                window.location.href = '/parent.html';
+                window.location.href = '/dashboard.html';
             } else {
                 window.location.href = '/chat.html';
             }
@@ -123,7 +123,7 @@
                 localStorage.setItem('hal_user', JSON.stringify(data.user));
 
                 if (data.user.role === 'PARENT') {
-                    window.location.href = '/parent.html';
+                    window.location.href = '/dashboard.html';
                 } else {
                     window.location.href = '/chat.html';
                 }
@@ -161,7 +161,7 @@
                 localStorage.setItem('hal_user', JSON.stringify(data.user));
 
                 if (data.user.role === 'PARENT') {
-                    window.location.href = '/parent.html';
+                    window.location.href = '/dashboard.html';
                 } else {
                     window.location.href = '/chat.html';
                 }
